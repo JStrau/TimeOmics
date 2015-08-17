@@ -1,0 +1,302 @@
+############ LOAD/INSTALL packages and scripts ###########
+getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
+  if(!suppressMessages(suppressWarnings(require(pkg, character.only = TRUE, quietly = TRUE)))) {
+    try(install.packages(pkg, repos = repos), silent = TRUE)
+  }
+  if(load) suppressPackageStartupMessages(library(pkg, character.only = TRUE, quietly = TRUE))
+  if(load & !silent) message("Loaded ", pkg)
+}
+
+##CHANGE DE plot if DT package selection="single" is updated
+d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
+x <- c("shiny", "shinydashboard","lattice",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','extrafont','googleCharts','latticeExtra','DT') # etc.
+lapply(c(x,d), getPackage, silent = TRUE)
+
+if(!require(org.Hs.eg.db)){
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("org.Hs.eg.db")
+}
+
+library(shiny)
+library(shinydashboard)
+if (!require(devtools)& !require(googleCharts)){
+  install.packages("devtools")
+devtools::install_github("jcheng5/googleCharts")
+}
+library(googleCharts)
+
+
+source('Scripts/Anoboxplot.R')
+source('Scripts/BHI.R')
+source('Scripts/clValid2.R')
+#source('Scripts/lmmSpline.R')
+
+
+#################
+
+shinyUI(pageWithSidebar(
+  
+  # Application title
+#tags$head(tags$style("body  {background-color: orange;}")
+  titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Picture5.png" alt="TimeOmics" height="60" width="120" align="left"></td>'))),
+             #,list(HTML(' <img src="Logo3.png" alt="TimeOmics" height="60" width="120" align="right"></td>'))),
+  # Sidebar with controls to select the variable to plot against mpg
+  # and to specify whether outliers should be included
+  
+  sidebarPanel(   
+    #######Upload Panel################
+    conditionalPanel(condition = "input.Tabs == 'Upload'",
+    wellPanel(
+      p(strong("Upload")),
+      fileInput('ExpData', 'Expression matrix',
+                accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv'),multiple=FALSE),
+      tags$hr(),
+      checkboxInput('header', 'Header', TRUE),
+      radioButtons('sep', 'Separator',
+                   c(Comma=',',
+                     Semicolon=';',
+                     Tab='\t'),
+                   'Comma'),
+      helpText("Note: Please have the samples as row and the molecules as column."),
+      fileInput("TimeData", "Time vector", multiple=FALSE),
+      fileInput("ReplicateData", "Sample ID vector", multiple=FALSE),
+      helpText("Note: The time, the sample ID and the group vector needs to have the same length as the expression matrix row."),
+      fileInput("GroupData", "Group vector", multiple=FALSE),
+      helpText("Note: If your samples belong to one group upload a vector of '1' with the same length as the  expression matrix row."),
+      
+      fileInput("AnnotData", "Molecule annotation", multiple=FALSE),
+      helpText("Note: In order to perform the GO term enrichment analysis please upload the Entrez Gene identifier matching the expression matrix columns.")
+      )
+    ),
+    
+  
+    
+    ################## Filtering Panel ##################
+    
+    conditionalPanel(condition = "input.Tabs == 'Filter'",
+                     wellPanel(
+                       p(strong("Soft filtering:")),
+                       fluidRow(
+                         shiny::column(width=4,offset = 1,checkboxInput(inputId = "numMissingUsed",
+                                                                  label = strong("Filter missing data"),
+                                                                  value = FALSE)),
+                         shiny::column(width=4, offset = 1, uiOutput("missing_slider"))),
+                       
+                        # shiny::column(6,offset = 1,checkboxInput(inputId = "modelColor",
+                        #                                          label = strong("Color by missing values"),
+                        #                                          value = TRUE))),
+                       fixedRow(
+                         shiny::column(width = 4,offset=1,checkboxInput(inputId = "fcUsed",
+                                                                label = strong("Filter fold change"),
+                                                                value = FALSE)),
+                         shiny::column(width=4, offset = 1,
+                                       uiOutput("fc_slider"))),
+                       helpText("Note: Filtering of molecules based on the proportion missing values and fold change is only applied if the boxes are selected."),
+                       actionButton('ApplyFilterSoft', 'Apply'),
+                       br(),
+                       hr(),
+                       fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
+                       
+                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), actionButton('ApplyFilter', 'Apply')),
+                       hr(),
+                       fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
+   
+
+    
+    ################## Modelling Panel ##################
+    
+    conditionalPanel(condition = "input.Tabs == 'Model'",
+                     wellPanel(
+                       p(strong("Modelling")),
+                       selectInput("Basis", "Basis:",
+                                   list("Cubic" = "cubic",
+                                        "P-spline" = "p-spline", 
+                                        "Cubic p-spline" = "cubic p-spline")),
+                       actionButton("Modelling","Model"),
+                       p(strong(" ")),
+                       p(strong("Model info:")),
+                       htmlOutput("textModels"),
+                       p(strong(" ")),
+                       htmlOutput("ModelTable"),
+                       p(strong(" ")),
+                       downloadButton('downloadModel', 'Download modelled data')
+                     )
+    ),
+    
+    
+    
+    ################## Clustering Panel ##################
+    
+    conditionalPanel(condition = "input.Tabs == 'Cluster'",
+    wellPanel(
+     # HTML(tags$style(".span12 {background-color: black;}"))
+      p(strong("Cluster validation")),
+      checkboxInput(inputId = "correlation", label = "Correlation", value = TRUE),
+      p("Select algoritms:"),
+      checkboxInput(inputId = "hierarchical", label = "Hierarchical Clustering", value = TRUE),
+      checkboxInput(inputId = "kmeans", label = "Kmeans", value = TRUE),
+      checkboxInput(inputId = "pam", label = "PAM", value = TRUE),
+      checkboxInput(inputId = "som", label = "Self-Organizing Maps", value = TRUE),
+      checkboxInput(inputId = "model", label = "Model based clustering", value = TRUE),
+      uiOutput("cluster_range_slider"),
+      actionButton("submitVali","Update View")
+    ),
+    
+    
+    wellPanel(
+      p(strong("Cluster visualisation")),
+      selectInput("variable", "Algorithm:",
+                  list("Hierarchical Clustering" = "hc", 
+                       "Diana" = "diana", 
+                       "Kmeans" = "km",
+                       'Model based clustering'='model',
+                       'Self-Organizing maps'='som',
+                       'PAM'='pam')),
+      uiOutput("cluster_slider"),
+      checkboxInput(inputId = "Smoothed", label = "Smoothed", value = FALSE),
+      actionButton("submitVisu","Update View"),
+      downloadButton('downloadClassifData', 'Download classification')
+    ),
+    
+    wellPanel(
+      p(strong("GO Enrichment")),
+      selectInput("organism", "Organism:",
+                  list("Homo sapiens" = "org.Hs.eg.db" 
+                     #  "Mus musculus" = "org.Mm.eg.db", 
+                     #  "Drosophila melanogasta" = "org.Dm.eg.db",
+                    #   'Arabidopsis thaliana'='org.At.tair.db',
+                     #  'Anopheles'='org.Ag.eg.db',
+                     #  'Danio rerio'='org.Dr.eg.db'
+                    )),
+      selectInput("ontology", "Ontology:",
+                  list("All" = "all", 
+                       "Biological Process" = "BP", 
+                       "Molecular Function" = "MF",
+                       'Cellular Compartment'='CC')),
+      actionButton("updateTable","Update table"),
+      downloadButton('downloadData', 'Download enrichment analysis')
+    )),
+    
+    ############ Differential expression ############
+    conditionalPanel(condition = "input.Tabs == 'Differential Expression'",
+                     wellPanel(
+                       p(strong("Differential Expression")),
+                       selectInput("BasisDE", "Basis:",
+                                   list("Cubic" = "cubic",
+                                        "P-spline" = "p-spline", 
+                                        "Cubic p-spline" = "cubic p-spline")),
+                       selectInput("Type", "Type:",
+                                   list("All"="all",
+                                        "Time" = "time",
+                                        "Group" = "group", 
+                                        "Group and Time interaction" = "grouptime")),
+                       selectInput("experiment", "Experiment:",
+                                   list("All"="all",
+                                        "Time course" = "timecourse",
+                                        "Longitudinal 1" = "longitudinal1", 
+                                        "Longitudinal 2" = "longitudinal2")),
+                       actionButton("DEtable","Analyse"),
+                       downloadButton('downloadDEData', 'Download DE analysis')
+                     )
+    ),
+    conditionalPanel(condition = "input.Tabs == 'Example and Help'",
+                     wellPanel(
+                       p(strong("Example")),
+                       helpText("Please click on 'Run Example' button to load example outputs."),
+                       actionButton("RunExample","Run example"),
+                       p(strong("User guide")),
+                       helpText("Note: If your browser cannot show the pdf within the shiny application the file is also available in the www folder."),
+                       actionButton("ShowUserGuide","User guide")
+                     )
+    )
+
+
+    ,#end tabsetPanel
+    HTML('<footer>
+         <td valign="top" >  <img src="index.gif" alt="QFAB" height="60" width="60" align="center"><img src="crc.gif" alt="CRC" align="center" height="50" width="148" style="display:inline;"></td></footer>')
+    ),
+  
+
+  mainPanel(
+    tabsetPanel(type = 'pills',
+    #tags$main(tags$style("body {background-color: black; }")),
+    #HTML('<body background-color="#FF00FF">January</body>'),
+      ############### UPLOAD #################
+    tabPanel("Upload",
+             
+              checkboxInput(inputId = "dens",
+                           label = strong("Show density"),
+                           value = FALSE),
+               
+             conditionalPanel(condition = "input.dens == false",
+                              plotOutput("HistPlot")
+             ),
+             conditionalPanel(condition = "input.dens == true",
+                              plotOutput("DensityPlot")
+             ),
+             checkboxInput(inputId = "densSample",
+                           label = strong("Show density"),
+                           value = FALSE),
+             
+               plotOutput("Boxplot")),
+               #htmlOutput("BoxplotGvis")),
+    
+    ########## FILTERING ##########
+    
+    tabPanel("Filter", uiOutput("filter_group"),
+               fluidRow(
+                 shiny::column(width=6,htmlOutput("BubbleGvis2")),
+                 shiny::column(width=6,htmlOutput("BubbleGvis"),checkboxInput('logfc', 'Log fold change', TRUE))),
+                fluidRow(plotOutput("MCLUST")),
+                hr(),
+                fluidRow(shiny::column(width=6, textOutput('summarySoftFilter'))),
+                fluidRow(shiny::column(width=6, textOutput('summaryFilter'))),
+                fluidRow(shiny::column(width=6, textOutput('resetedFilter')))),
+    
+    ############### MODELLING #################
+    
+    tabPanel("Model",
+                  checkboxInput(inputId = "ModelPlotMean",
+                           label = strong("Show mean"),
+                           value = FALSE),
+             checkboxInput(inputId = "ModelPlotSmooth",
+                           label = strong("Show smoothed fit"),
+                           value = FALSE),
+          #   radioButtons("Radio_plotmodel", "Show profile:",c("Smooth" = "smooth","Mean"="mean")),
+             plotOutput("ModelPlot"),
+             DT::dataTableOutput('ModelTables')),
+      
+    ############### Clustering #################       
+    
+    tabPanel("Cluster",
+      h3(textOutput("caption1")),
+      plotOutput("clusterValidation"),
+      h3(textOutput("caption")),
+      plotOutput("clusterPlot"),
+      DT::dataTableOutput('GOEnrichment')),
+      
+    ############### Differential Expression #################
+      
+    tabPanel("Differential Expression",
+             h3(textOutput("DEInfoText")),
+             fluidRow(shiny::column(width=6,radioButtons("Radio_DEplot", "Show plot:",c("All"='all',"Time fit" = "time","Group fit" = "group","Group and time interaction fit"="group*time"))),                      
+                                    shiny::column(width=6, checkboxInput(inputId = "DEPlotMean",
+                                                                         label = strong("Show mean"),
+                                                                         value = FALSE),
+                                                            checkboxInput(inputId = "DEPlotSmooth",
+                                                                label = strong("Show smoothed fit"),value = FALSE))),
+             plotOutput("DEPlot"),
+             DT::dataTableOutput('DETable')),
+    
+    
+    ############## Run Example and Help Page ###############
+    tabPanel("Example and Help",
+             conditionalPanel(condition = "input.ShowUserGuide != 0",
+             tags$iframe(src="TimeOmics_userguide.pdf", width="900", height="600"))),
+             #htmlOutput('pdfviewer')
+     
+    
+    id ="Tabs"
+    )    )#End mainpanel
+)
+)
