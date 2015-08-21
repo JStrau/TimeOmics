@@ -15,6 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 ############ LOAD/INSTALL packages and scripts ###########
+
 getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
   if(!suppressMessages(suppressWarnings(require(pkg, character.only = TRUE, quietly = TRUE)))) {
     try(install.packages(pkg, repos = repos), silent = TRUE)
@@ -60,6 +61,7 @@ shinyUI(pageWithSidebar(
   # and to specify whether outliers should be included
   
   sidebarPanel(   
+    
     #######Upload Panel################
     conditionalPanel(condition = "input.Tabs == 'Upload'",
     wellPanel(
@@ -108,13 +110,13 @@ shinyUI(pageWithSidebar(
                          shiny::column(width=4, offset = 1,
                                        uiOutput("fc_slider"))),
                        helpText("Note: Filtering of molecules based on the proportion missing values and fold change is only applied if the boxes are selected."),
-                       actionButton('ApplyFilterSoft', 'Apply'),
+                       #actionButton('ApplyFilterSoft', 'Apply'),
                        br(),
                        hr(),
-                       fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
-                       
-                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), actionButton('ApplyFilter', 'Apply')),
+                       fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Don't use filter ratios"="Non","Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
                        hr(),
+                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), actionButton('ApplyFilter', 'Apply')),
+                       
                        fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
    
 
@@ -215,6 +217,8 @@ shinyUI(pageWithSidebar(
                        downloadButton('downloadDEData', 'Download DE analysis')
                      )
     ),
+    
+    ############# Example and Help tab ##############
     conditionalPanel(condition = "input.Tabs == 'Example and Help'",
                      wellPanel(
                        p(strong("Example")),
@@ -243,13 +247,7 @@ shinyUI(pageWithSidebar(
               checkboxInput(inputId = "dens",
                            label = strong("Show density"),
                            value = FALSE),
-               
-             conditionalPanel(condition = "input.dens == false",
-                              plotOutput("HistPlot")
-             ),
-             conditionalPanel(condition = "input.dens == true",
-                              plotOutput("DensityPlot")
-             ),
+                              plotOutput("HistPlot"),
              checkboxInput(inputId = "densSample",
                            label = strong("Show density"),
                            value = FALSE),
