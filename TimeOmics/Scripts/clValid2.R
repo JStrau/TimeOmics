@@ -15,7 +15,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 clValid2 <- function (obj, nClust, clMethods = "hierarchical", validation = "stability", 
-        maxitems = 600, metric = "euclidean", method = "average", 
+        maxitems = 600, metric = "euclidean", method = "ward.D", 
         neighbSize = 10, annotation = NULL, GOcategory = "all", goTermFreq = 0.05, 
         dropEvidence = NULL, verbose = FALSE, ...) {
   
@@ -51,7 +51,7 @@ clValid2 <- function (obj, nClust, clMethods = "hierarchical", validation = "sta
                                         "biological"), several.ok = TRUE)
   metric <- match.arg(metric, c("euclidean", "correlation", 
                                 "manhattan",'MIC'))
-  method <- match.arg(method, c("ward", "single", "complete", 
+  method <- match.arg(method, c("ward.D", "single", "complete", 
                                 "average"))
   GOcategory <- match.arg(GOcategory, c("all", "BP", "CC", 
                                         "MF"))
