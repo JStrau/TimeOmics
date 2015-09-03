@@ -25,17 +25,15 @@ getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us
 }
 
 ##CHANGE DE plot if DT package selection="single" is updated
-d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard","lattice",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','extrafont','googleCharts','latticeExtra','DT') # etc.
-lapply(c(x,d), getPackage, silent = TRUE)
+#d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
+x <- c("shiny", "shinydashboard",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','DT') # etc.
+lapply(c(x), getPackage, silent = TRUE)
 
 if(!require(org.Hs.eg.db)){
   source("http://bioconductor.org/biocLite.R")
   biocLite("org.Hs.eg.db")
 }
 
-library(shiny)
-library(shinydashboard)
 if (!require(devtools)& !require(googleCharts)){
   install.packages("devtools")
 devtools::install_github("jcheng5/googleCharts")
@@ -52,7 +50,6 @@ source('Scripts/clValid2.R')
 #################
 
 shinyUI(pageWithSidebar(
-  
   # Application title
 #tags$head(tags$style("body  {background-color: orange;}")
   titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Picture5.png" alt="TimeOmics" height="60" width="120" align="left"></td>'))),
@@ -62,7 +59,7 @@ shinyUI(pageWithSidebar(
   
   sidebarPanel(   
     
-    #######Upload Panel################
+    ####### Upload Panel ################
     conditionalPanel(condition = "input.Tabs == 'Upload'",
     wellPanel(
       p(strong("Upload")),
@@ -222,7 +219,7 @@ shinyUI(pageWithSidebar(
     conditionalPanel(condition = "input.Tabs == 'Example and Help'",
                      wellPanel(
                        p(strong("Example")),
-                       helpText("Please click on 'Run Example' button to load example outputs."),
+                       helpText("Please click on 'Run Example' to upload example data."),
                        actionButton("RunExample","Run example"),
                        p(strong("User guide")),
                        helpText("Note: If your browser cannot show the pdf within the shiny application the file is also available in the www folder."),
@@ -238,12 +235,16 @@ shinyUI(pageWithSidebar(
   
 
   mainPanel(
+    
     tabsetPanel(type = 'pills',
     #tags$main(tags$style("body {background-color: black; }")),
     #HTML('<body background-color="#FF00FF">January</body>'),
-      ############### UPLOAD #################
+    
+    ############### UPLOAD #################
+    
     tabPanel("Upload",
-             
+              fluidRow( uiOutput("Group_Checkbox")),
+             textOutput("result"),
               checkboxInput(inputId = "dens",
                            label = strong("Show density"),
                            value = FALSE),
@@ -259,8 +260,8 @@ shinyUI(pageWithSidebar(
     
     tabPanel("Filter", uiOutput("filter_group"),
                fluidRow(
-                 shiny::column(width=6,htmlOutput("BubbleGvis2")),
-                 shiny::column(width=6,htmlOutput("BubbleGvis"),checkboxInput('logfc', 'Log fold change', TRUE))),
+                 shiny::column(width=6,htmlOutput("BubbleGvisMissProp")),
+                 shiny::column(width=6,htmlOutput("BubbleGvisFC"),checkboxInput('logfc', 'Log fold change', TRUE))),
                 fluidRow(plotOutput("MCLUST")),
                 hr(),
                 fluidRow(shiny::column(width=6, textOutput('summarySoftFilter'))),
@@ -305,6 +306,8 @@ shinyUI(pageWithSidebar(
     
     ############## Run Example and Help Page ###############
     tabPanel("Example and Help",
+             fluidRow( h3('TimeOmics workflows')),
+             fluidRow(img(src="Workflow.png",width=600,height=200)),
              conditionalPanel(condition = "input.ShowUserGuide != 0",
              tags$iframe(src="TimeOmics_userguide.pdf", width="900", height="600"))),
              #htmlOutput('pdfviewer')

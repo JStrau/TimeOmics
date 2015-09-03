@@ -67,10 +67,11 @@ changedPath.Exp <- F
 log <- TRUE
 investNoiseData1 <- investNoiseData2 <- NULL
 resetfilter <- 0
-shinyServer(function(input, output) {
-
+shinyServer(function(input, output,session) {
+ExampleExp <- NULL
 ########UPLOAD FUNCTIONS################
- ExpData <- reactive({
+ 
+ExpData <- reactive({
 
     inFile <- input$ExpData
     
@@ -81,7 +82,7 @@ shinyServer(function(input, output) {
     changedPath.Exp <- inFile$datapath!=path 
     
   if(is.null(data) | changedPath.Exp | header!=input$header | sep!=input$sep| !is.null(input$AnnotData)){
-
+    ExampleData <- NULL
     lmm <<- NULL
 
     data <<- read.csv(file=inFile$datapath, header=input$header, sep=input$sep)
@@ -107,7 +108,7 @@ shinyServer(function(input, output) {
     return(list(data=data,changedPath=changedPath.Exp))
   })
  
- 
+ ##### UPLOAD GROUP DATA #######
  GroupData <- reactive({
    
    inFile <- input$GroupData
@@ -125,7 +126,7 @@ shinyServer(function(input, output) {
 
  })
 
-
+##### UPLOAD TIME DATA #######
  
 TimeData <- reactive({
    
@@ -144,7 +145,7 @@ TimeData <- reactive({
    return(list(data=time,changedPath=changedPath.time))
  })
 
-
+##### UPLOAD SAMPLE ID DATA #######
  
 RepData <- reactive({
    
@@ -161,8 +162,25 @@ RepData <- reactive({
    }
    return(list(data=rep,changedPath=changedPath.rep))
  })
- 
 
+##### UPLOAD ANNOTATION DATA #######
+
+AnnotData <- reactive({
+  
+  inFile <- input$AnnotData
+  
+  if (is.null(inFile)){
+    return(NULL)
+  }
+  
+  if(is.null(annot)|annot.path!=inFile$datapath){
+    annot <<- unlist(read.csv(file=inFile$datapath,header=F))
+    annot.path <<- inFile$datapath
+  }
+  annot
+})
+
+##### TRACK CHANGED file path #######
 changedPath <- reactive({
   if(!is.null(ExpData()$data) & !is.null(TimeData()$data) & !is.null(GroupData()$data) & !is.null(RepData()$data)){
     if(TimeData()$changedPath | GroupData()$changedPath| ExpData()$changedPath | RepData()$changedPath){
@@ -177,38 +195,31 @@ changedPath <- reactive({
   
 })
 
-AnnotData <- reactive({
-   
-   inFile <- input$AnnotData
-   
-   if (is.null(inFile)){
-     return(NULL)
-   }
-   
-   if(is.null(annot)|annot.path!=inFile$datapath){
-     annot <<- unlist(read.csv(file=inFile$datapath,header=F))
-     annot.path <<- inFile$datapath
-   }
-   annot
- })
-
-
+### LOAD EXAMPLE DATA ON BUTTON RUNEXAMPLE####
 
 Example <- reactive({
-  if(input$RunExample!=0){
-    load('Example.RData')
+  print('runexample')
+  if(input$RunExample!=0 & is.null(ExampleExp)){
+    print(getwd())
+    load('ExampleData/Example.RData')
+    ExampleExp <<- ExampleExp
+    ExampleGroup <<- ExampleGroup
+    ExampleTime <<- ExampleTime
+    ExampleSample <<- ExampleSample
+    print(ls())
     indexFinal <<- rep(TRUE,ncol(ExampleExp))
     
     }
   
 })
-  
+
   output$HistPlot <- renderPlot({
     
     # generate an rnorm distribution and plot it
     ExpData <- ExpData()$data
     
     if(input$RunExample & input$RunExample!=0){
+      Example()
       ExpData <- ExampleExp
       }
     if(!is.null(ExpData)){
@@ -221,9 +232,7 @@ Example <- reactive({
         group <<- GroupData()$data
       }
       group.tmp <-NULL
-      
       group.tmp <- as.factor(rep(group,ncol(ExpData)))
-
       mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=group.tmp)
    
       #density plot
@@ -245,6 +254,7 @@ output$Boxplot <- renderPlot({
 
   ExpData <- ExpData()$data
   if(input$RunExample & input$RunExample!=0){
+    Example()
     ExpData <- ExampleExp
   }
   
@@ -289,9 +299,61 @@ output$Boxplot <- renderPlot({
 #####################  FILTER FUNCTIONS  #################
 
 
+output$result <- reactivePrint( function() {
+  g <- input$GroupsSel
+  
+  group <- GroupData()$data
+  if(is.null(group))
+    return()
+  
+  if(input$RunExample){
+    Example()
+    group <- as.character(unlist(ExampleGroup))
+  }
+  ##There always needs to be one group selected
+  if(length(g)>2|length(g)==0){
+
+    cb_options <- list()
+    group <- unique(na.omit(group))
+    for(x in group){
+      cb_options[[x]] <- x
+    }
+    updateCheckboxGroupInput(session,"GroupsSel",choices=cb_options,selected=cb_options[[1]],inline = T)
+  }
+  paste('Analysis is going to be performed on group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),collapse='')
+
+ 
+})
+
+output$Group_Checkbox <- renderUI({
+  group <- GroupData()$data
+  if(input$RunExample){
+    Example()
+    group <- as.character(unlist(ExampleGroup))
+  }
+    
+  if(is.null(group))
+    return()
+  group <- as.character(unique(na.omit(group)))
+  cb_options <- list()
+  for(x in group){
+  cb_options[[x]] <- x
+  }
+  print(cb_options)
+  text <-'Detected group'
+  if(length(group)>1)
+    text <- "Selecte 1 or 2 of the detected groups"
+  checkboxGroupInput("GroupsSel", text,
+               choices=cb_options,selected=cb_options[[1]],inline = T)
+   
+  
+})
+
+
+
 
 noiseDatanew <- reactive({
-  
+  withProgress(message = 'Filtering in progress', value = 0.1, {
   ExpData <- ExpData()$data
   time <- TimeData()$data
   group <- as.character(GroupData()$data)
@@ -301,13 +363,12 @@ noiseDatanew <- reactive({
 #  m <- FALSE
   summaMis <- summaFC <- summa <-''
   if(input$RunExample!=0){
+    Example()
     ExpData <- ExampleExp
     time <- unlist(ExampleTime)
     group <- as.character(unlist(ExampleGroup))
     replicate <- unlist(ExampleSample)
   }
-  
-
   
   if((!is.null(ExpData) & !is.null(time) & !is.null(group) & !is.null(replicate)) | changedPath()|logfc!=log){
     
@@ -315,13 +376,14 @@ noiseDatanew <- reactive({
       indexFinal <- rep(T,ncol(ExpData))
       resetfilter <<- input$ResetFilter
     }else{
-    indexFilterFC <- indexFilterMiss <- indexFilterRatios <- rep(TRUE, ncol(ExpData))
+      indexFilterFC <- indexFilterMiss <- indexFilterRatios <- rep(TRUE, ncol(ExpData))
 
     grp <- na.omit(unique(group))
     print(grp)
     
-    ########## if two groups what group is selected #####
+    #### Check if group selection changed
     equal_gr <- FALSE
+    ########## if two groups what group is selected #####
     current_filter_input <- input$filter_gr
     
     if(length(current_filter_input)==0|is.null(current_filter_input)){
@@ -341,7 +403,7 @@ noiseDatanew <- reactive({
     gr1 <- which(group==grp[1])
     print(gr1)
     if(is.null(investNoiseData1)){
-    investNoiseData1 <<-investNoise(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1])
+      investNoiseData1 <<-investNoise(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1])
     }
     index.na1 <- which(!is.na(investNoiseData1@RT)&!is.na(investNoiseData1@RI)&!is.infinite(investNoiseData1@RI)&!is.infinite(investNoiseData1@RT))
     
@@ -403,7 +465,7 @@ noiseDatanew <- reactive({
       class1<- try(mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[index.na1&index.na2,]),nbCluster =2)@bestResult@partition)
       class2<- try(mixmodCluster(data.frame(cbind(investNoiseData2@RT,investNoiseData2@RI)[index.na2,]),nbCluster =2)@bestResult@partition)
       
-      if(class1!='try-error' & class2!='try-error'){
+      if(class(class1)!='try-error' & class(class2)!='try-error'){
       cl1 <- unique(class1)
       tcl1 <- ifelse(mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[2]],na.rm=T),1,2)
         cl2 <- unique(class2)
@@ -464,8 +526,10 @@ noiseDatanew <- reactive({
     indexFinal <- rep(T,length(indexFinal))
 
   
-}
+  }
+  })
   return(data2[indexFinal,])
+ 
 })
 
 
@@ -585,22 +649,19 @@ noiseDatanew <- reactive({
 # })
 # 
 
-
-output$BubbleGvis <- renderGvis({
-  
-  # generate an rnorm distribution and plot it
+## Scatterplot of filter ratios colored by fold change values ##
+output$BubbleGvisFC <- renderGvis({
   df <- noiseDatanew()
   bubble2 <- NULL
-
   if(!is.null(df)){
     bubble2 <- gvisBubbleChart(df, idvar="Name", xvar="RT", yvar="RI", sizevar="FC",options=list(title='Fold change',hAxis="{title: 'R_T'}",vAxis="{title: 'R_I'}",colorAxis="{colors: ['blue', 'orange']}",bubble="{stroke:'none',opacity:0.4,textStyle:{color: 'none'}}",sizeAxis="{minValue: 0,  maxSize: 5}"))
   }
-  
   return(bubble2)
   
 })
 
-output$BubbleGvis2 <- renderGvis({
+## Scatterplot of filter ratios colored by proportion of missing values ##
+output$BubbleGvisMissProp <- renderGvis({
   df <- noiseDatanew()
   bubble <- NULL
   if(!is.null(df)){
@@ -609,30 +670,26 @@ output$BubbleGvis2 <- renderGvis({
   return(bubble)
 })
 
+### Model based clustering on filter ratios ##
 
 output$MCLUST <- renderPlot({
-  
-  # generate an rnorm distribution and plot it
-  
   df <- noiseDatanew()
-  
+  clustplot <- NULL
   if(!is.null(df)){
-    clustplot <- NULL
-    withProgress(message = 'Clustering data', value = 0.1, {
-    index.na <- which(!is.na(df$RT)&!is.na(df$RI)&!is.infinite(df$RT)&!is.infinite(df$RI))
-    class1<- try(mixmodCluster(data.frame(cbind(df$RT,df$RI)[ index.na,]),nbCluster = 2)@bestResult@partition)
+    #Show progress bar
+   # withProgress(message = 'Clustering data', value = 0.1, {
+      index.na <- which(!is.na(df$RT)&!is.na(df$RI)&!is.infinite(df$RT)&!is.infinite(df$RI))
+      class1<- try(mixmodCluster(data.frame(cbind(df$RT,df$RI)[ index.na,]),nbCluster = 2)@bestResult@partition)
    
-    if(class1!='try-error'){
-    cl <- unique(class1)
-    tcl <- ifelse(mean(df$RT[class1==cl[1]],na.rm=T)<mean(df$RT[class1==cl[2]],na.rm=T),2,1)
-
-    keep <- rep('yes',length(class1))
-    
-    keep[class1==cl[tcl]] <- 'no'
-    df$keep <- keep
-    clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,type="n",xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
-    }
-    })
+      if(class(class1)!='try-error'){
+        cl <- unique(class1)
+        tcl <- ifelse(mean(df$RT[class1==cl[1]],na.rm=T)<mean(df$RT[class1==cl[2]],na.rm=T),2,1)
+        keep <- rep('yes',length(class1))
+        keep[class1==cl[tcl]] <- 'no'
+        df$keep <- keep
+        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,type="n",xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
+      }
+  #  })
     return(clustplot)
   }else{
     return()
@@ -646,6 +703,7 @@ output$filter_group <- renderUI({
   changedPath <- GroupData()$changedPath
   
   if(input$RunExample & input$RunExample!=0){
+    Example()
     group <- unlist(ExampleGroup)
   } 
   print(group)
@@ -667,17 +725,14 @@ output$RI_Filter <- renderUI({
 })
 
 output$RT_Filter <- renderUI({
-  
   df <- noiseDatanew()
   if(!is.null(df))
     numericInput("RT_Filt", HTML(paste("R", tags$sub("T"), sep = "")), 0.9,
                  min = min(df$RI,na.rm=T), max = max(df$RI,na.rm=T),step=0.1)
-  
 })
 
 output$fc_slider <- renderUI({
   df <- noiseDatanew()
-  
   if(!is.null(df)){
     fc3 <-df$FC
     if(is.null(f.slider)) {
@@ -693,14 +748,10 @@ output$fc_slider <- renderUI({
       }
       f.slider <<- ifelse(inp.fc<ymin.fc,ymin.fc,inp.fc)
     }
-    
-    
     sliderInput("fcs", "Fold change",
                 min = signif(ymin.fc,2), max = signif(ymax.fc,2),
                 value = signif(f.slider,2))
   }
-  
-  
 })
 
 
@@ -734,16 +785,12 @@ output$missing_slider <- renderUI({
 
 #Action buttons are annoying
 output$resetedFilter <- renderText({
-  
   if(input$ResetFilter==0)
     return('')
-
- 
-    lmm <<- NULL
-    lmm.de <<- NULL
   
-    return('Reset all filters.')
-  
+  lmm <<- NULL
+  lmm.de <<- NULL
+  return('Reset all filters.')
 })
 
 
@@ -754,8 +801,6 @@ output$summaryFilter <- renderText({
     lmm <<- NULL
     lmm.de <<- NULL
     return(paste('Leaving ',sum(indexFinal),'after filtering.'))
-  #  return(Filtervals())
-
 })
 
 
@@ -914,60 +959,40 @@ output$summaryFilter <- renderText({
   ################# Modelling functions ###########
   
 LMMData <- reactive({
-  print('iso')
-  print(isolate(input$Modelling)==0)
   #lmm <- NULL
   if (is.null(lmm) & input$Modelling==0)
     return()
-  
-  if(is.null(indexFinal)& !is.null(ExpData <- ExpData()$data))
-    indexFinal <<- rep(T,ncol(ExpData()$data))
-  
   ExpData <- ExpData()$data
-
+  if(is.null(indexFinal)& !is.null(ExpData)){
+    print(indexFinal)
+    indexFinal <<- rep(T,ncol(ExpData))
+    ExpData <- ExpData[,indexFinal]
+    print(dim(ExpData))
+  }
   time <- TimeData()$data
   #group <- GroupData()$data
   replicate <- RepData()$data
-  annotation <- as.character(unlist(AnnotData()))[indexFinal]
+  annotation <- AnnotData()
   
   if(input$RunExample!=0){
-    ExpData <- ExampleExp
+    Example()
      if(is.null(indexFinal))
-      indexFinal <<- rep(T,ncol(ExpData))
-     ExpData <-ExpData[,indexFinal]
+      indexFinal <<- rep(T,ncol(ExampleExp))
+    ExpData <-ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
- #   group <- ExampleGroup
     replicate <- unlist(ExampleSample)
   }
   if(!is.null(annotation)){
-    colnames(ExpData) <- annotation[indexFinal]
+    colnames(ExpData) <- as.character(unlist(annotation))[indexFinal]
   }
-
-#  print(group)
   if(!is.null(ExpData)&!is.null(time)&!is.null(replicate)&is.null(lmm)){
-    print(indexFinal)
-    ExpData <- ExpData[,indexFinal]
-    print(dim(ExpData))
- # if(!is.null(ExpData)&!is.null(time)&!is.null(replicate)&!is.null(group)&is.null(lmm)){
-    
-   withProgress(message = 'Modelling in progress', value = 0.1, {
-  #  lmm <- 
-
-  #  lmm <-new('lmmspline',predSpline= as.data.frame(matrix(rnorm(100,1,2),ncol=4)),modelsUsed=rep(1,25),basis='basis',knots=c(1,2),errorMolecules="NULL",models=list(), derivative=F)
-    
-    # rm(lmmSpline)
-    # source('Scripts/lmmSpline.R')
-     
-    lmm <<- lmmSpline(data=ExpData,sampleID=replicate, time=time, basis=isolate(input$Basis),keepModels = F)
-    
-    summary(lmm)
+    withProgress(message = 'Modelling in progress', value = 0.1, {
+      lmm <<- lmmSpline(data=ExpData,sampleID=replicate, time=time, basis=isolate(input$Basis),keepModels = F)
     })
   }else{
     warning("Please check the availability of the expression data, group, time and replicates.")
   }
-  
   lmm
-  
 })  
 
 output$ModelTable<- renderText({
@@ -977,9 +1002,7 @@ output$ModelTable<- renderText({
   if(is.null(lmm))
     return()
   p <- paste(names(table(lmm@modelsUsed)),as.vector(table(lmm@modelsUsed)),sep=":")
-  print(p)
   HTML(paste("Table of models used to model the molecule expression:", paste(p,collapse='<br>'),sep="<br>"))
-  
 })
 
 
@@ -990,7 +1013,6 @@ output$downloadModel <- downloadHandler(
   content = function(file) {
     write.csv(LMMData()@predSpline, file,row.names=F)
   }
-  
 )
 
 output$textModels <- renderText({
@@ -1015,27 +1037,27 @@ output$ModelTables =  DT::renderDataTable({
 
 
 output$ModelPlot <- renderPlot({
-  
-  s <- input$ModelTables_rows_selected
-  if (!length(s))
+  l <- LMMData()
+  if(is.null(l))
     return()
   
-  l <- LMMData()
+  s <- input$ModelTables_rows_selected
+  v <- NULL
+  if (!length(s))
+    s <- 1
+  
   ## Currently a data table bug as it should select only single arguments
   ### CHANGE IF DT R package is updated
   v <- as.numeric(s)[length(s)]
   # v <- which(l@DE$Molecule%in%input$DETable[1])
-  
-  
-  
   ExpData <- ExpData()$data[,indexFinal]
   time <- TimeData()$data
   group <- GroupData()$data
   
   if(input$RunExample & input$RunExample!=0){
+    Example()
     ExpData <- ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
-   # group <- ExampleGroup
     replicate <- unlist(ExampleSample)
   }
   p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,time = time,mean=input$ModelPlotMean,smooth=input$ModelPlotSmooth)+theme_bw()
@@ -1044,20 +1066,7 @@ output$ModelPlot <- renderPlot({
 
 
   ########Clustering functions########
-  limit_data_range <- function() {
-    # ------------------------------------------------------------------
-    # Because we're using reactiveUI for x_range and y_range, they start
-    # out as null, then get resolved after the client and server talk a bit.
-    # If they are not yet set, there will be some errors in this function, so
-    # do nothing for now (this function will be run again).
-    if (is.null(input$x_range) || is.null(input$y_range)) {
-      return(NULL)
-    }
-  }
   
-  
-  # Compute the forumla text in a reactive expression since it is 
-  # shared by the output$caption and output$mpgPlot expressions
   formulaText <- reactive({
     var <- switch(input$variable,
            "hc"="Hierarchical clustering", 
@@ -1074,19 +1083,11 @@ output$ModelPlot <- renderPlot({
   })
   
 
-  
-  # Generate a plot of the requested variable 
-  
-  
   makeValiPlot <- function(list,range,correlation){
     cluster.sel <- c(1:5)[list]
     #print(input$submitVali)
     range<-seq(range[1],range[2],1)
-    #isolate(ifelse(input$submitVali==0,range<-,range<-2:3))
-    
-    #ifelse(is.null(input$cluster_range),range <- c(2:3),range <- seq(input$cluster_range[1],input$cluster_range[2],1))
-    lmms <- LMMData()
-    print('validation')
+      lmms <- LMMData()
     if(is.null(lmms)){
       lmms <- t(ExpData()$data[,indexFinal])
     }else{
@@ -1096,16 +1097,13 @@ output$ModelPlot <- renderPlot({
     stab <- NULL
     ifelse(correlation,metric <- "correlation",metric <- "euclidean")
     withProgress(message = 'Cluster validation in progress', value = 0.1, {
-    stab <- clValid2(lmms, range, clMethods=c("hierarchical","kmeans","som","model","pam")[cluster.sel],validation="stability",metric=metric,maxitems=nrow(lmms))
-
-    ano.plot <- ano.boxplot(stab$measures,clMethods=c("hc","km","som","model","pam")[cluster.sel],measurement=c("CPN"))
+      stab <- clValid2(lmms, range, clMethods=c("hierarchical","kmeans","som","model","pam")[cluster.sel],validation="stability",metric=metric,maxitems=nrow(lmms))
+      ano.plot <- ano.boxplot(stab$measures,clMethods=c("hc","km","som","model","pam")[cluster.sel],measurement=c("CPN"))
     })
   }
   
   
   cluster <- function(algo,num.cluster,cor){
-    
-    #ifelse(is.null(input$cluster_num),num.cluster <-3 ,num.cluster <-input$cluster_num)
 
     withProgress(message = 'Clustering in progress', value = 0.1, {
     tmp.data<-LMMData()
@@ -1120,7 +1118,7 @@ output$ModelPlot <- renderPlot({
       tmp.data <- 1-cor(t(tmp.data),use="pairwise.complete.obs")
     if(algo=="hc"){
       ifelse(cor,t <-as.dist(tmp.data),t <- dist(tmp.data))
-      tree <- hclust(t,method="ward")
+      tree <- hclust(t,method="ward.D")
       classifi <<-  cutree(tree,k=num.cluster)
     }
     if(algo=="km"){
@@ -1154,43 +1152,55 @@ output$ModelPlot <- renderPlot({
 
     input$submitVisu
     data.lmm <-LMMData()
-    print('cluster plot')
-    if(is.null(data.lmm)){
-     data.lmm <- t(ExpData()$data[,indexFinal])
-    }else{
-      data.lmm <- data.lmm@predSpline
-    }
-  
-    time <- TimeData()$data
-    t.s <-sort(unique(time))
-    classification <- isolate(classif())
-    if(input$Smoothed){
-      s <- apply(data.lmm,1, function(x)spline(t.s,x,n=50)$y)
-      t <- seq(range(time)[1],range(time)[2],length.out=50)
-      pred.data <- data.frame(intensity=as.vector(s),Protein=rep(rownames(data.lmm),each=length(t)),Time=rep(t,dim(data.lmm)[1]),Cluster=factor(rep(classification,each=length(t)),levels=sort(unique(classification))))
-      
-    }else{
 
-      pred.data <- data.frame(intensity=as.vector(unlist(t(data.lmm))),Protein=rep(rownames(data.lmm),each=length(t.s)),Time=rep(t.s,dim(data.lmm)[1]),Cluster=factor(rep(classification,each=length(t.s)),levels=sort(unique(classification))))      
-      
+    if(is.null(data.lmm)){
+      if(is.null(indexFinal))
+        indexFinal <- rep(T,ncol(ExpData()$data))
+      data.lmm <- t(ExpData()$data[,indexFinal])
+    }else{
+      if(is.null(indexFinal))
+        indexFinal <- rep(T,nrow(data.lmm@predSpline))
+      data.lmm <- data.lmm@predSpline[indexFinal,]
     }
-   
+    print(head(data.lmm))
+    if(is.null(rownames(data.lmm)))
+      rownames(data.lmm) <- which(indexFinal==T)
+    
+    time <- TimeData()$data
+    if(is.null(time)){
+      Example()
+      time <- unlist(ExampleTime)
+    }
+
+    t.s <-sort(unique(na.omit(time)))
+    classification <- isolate(classif())
     u <- sort(unique(classification))
     l <- tapply(classification,classification,length)
-    header <- paste("C",u," ",", p=",l,"",sep="")
+    header <- paste("C",u,", n=",l,"",sep="")
     
-    p0 <- xyplot(intensity~Time|Cluster, data=pred.data, type="l", groups=Protein,
-                 xlab="Time", ylab = "Intensity", col="grey", lty = 2:5,strip = strip.custom(factor.levels=header),par.settings = list(strip.background=list(col="white")),cex = 0.3,layout=c(length(u),1))
-    p1 <- xyplot(intensity~Time|Cluster, data=pred.data, type="a",
-                 xlab="Array", ylab = "Intensity", col="black", lty = 1,
-                 lwd = 2)
+    if(input$Smoothed){
+      s <- apply(data.lmm,1, function(x)spline(t.s,x,n=50)$y)
+      t <- seq(min(time,na.rm = T),max(time,na.rm = T),length.out=50)
+      #pred.data <- data.frame(intensity=as.vector(s),Molecule=rep(rownames(data.lmm),each=length(t)),Time=rep(t,dim(data.lmm)[1]),Cluster=factor(rep(classification,each=length(t)),levels=sort(unique(classification))))
+      pred.data <- data.frame(Intensity=as.vector(s),Molecule=rep(rownames(data.lmm),each=length(t)),Time=rep(t,dim(data.lmm)[1]),Cluster=header[rep(classification,each=length(t))])
+      
+    }else{
+     # pred.data <- data.frame(intensity=as.vector(unlist(t(data.lmm))),Molecule=rep(rownames(data.lmm),each=length(t.s)),Time=rep(t.s,dim(data.lmm)[1]),Cluster=factor(rep(classification,each=length(t.s)),levels=sort(unique(classification))))      
+      pred.data <- data.frame(Intensity=as.vector(unlist(t(data.lmm))),Molecule=rep(rownames(data.lmm),each=length(t.s)),Time=rep(t.s,dim(data.lmm)[1]),Cluster=header[rep(classification,each=length(t.s))])      
+      
+         }
+   
+   # p0 <- xyplot(intensity~Time|Cluster, data=pred.data, type="l", groups=Molecule,
+   #              xlab="Time", ylab = "Intensity", col="grey", lty = 2:5,strip = strip.custom(factor.levels=header),par.settings = list(strip.background=list(col="white")),cex = 0.3,layout=c(length(u),1))
+   # p1 <- xyplot(intensity~Time|Cluster, data=pred.data, type="a",
+  #               xlab="Array", ylab = "Intensity", col="black", lty = 1,
+ #                lwd = 2)
     
-    print(p0 + p1)
-#     plot <- xyplot(intensity~Time|Cluster, data=pred.data, type="l", groups=Protein,col="black", ylab = "Intensity")
-#     plot1 <- xyplot(intensity~Time|Cluster, data=pred.data, type="a", groups=Protein,col="red",lwd = 2, ylab = "Intensity")
-#     p <- plot+plot1
-#     print(p)
-#     #return(p)
+    
+    p0 <- qplot(x=Time,y=Intensity,group=Molecule,color=Cluster,geom='line',data=pred.data,facets = ~Cluster) + stat_summary(fun.data = "mean_cl_boot",aes(x=Time,y=Intensity,group=Cluster),size=1.2,data=pred.data, geom="line",color='black')#+stat_summary(mean_cl_boot, geom="line",stat_summary( group = 1, fun.data = mean_cl_boot, color = "black", alpha = 0.2, size = 1.1))
+    #scales='free_y',facets = ~Cluster,data=pred.data,)
+    print(p0)
+
   }
   
   ###### RENDER PLOTS############
@@ -1252,13 +1262,11 @@ output$ModelPlot <- renderPlot({
   
   
   classif <- reactive({
-   
     if(input$variable!=v |input$cluster_num!=num |input$correlation!=core){
       v <<-input$variable
       num <<-input$cluster_num
       core <<-input$correlation
       ce <<- cluster(v,num,core)
-
     }
     ce
    })
@@ -1295,21 +1303,55 @@ output$ModelPlot <- renderPlot({
       enrich <<-biological.homogenity(cl,ident=annonames,identifier="IPI",ontology=input$ontology,db=input$organism)     
       })
     }
-    
-    print(head(enrich))
     enrich
     
   })
   
+  ##write data
+  datasetClassifInput <- reactive({
+    l <- LMMData()
+    if(is.null(l)){
+      l <- ExpData()$data[,indexFinal]
+      a <- as.character(unlist(AnnotData()))[indexFinal]
+      annonames <- ifelse(is.null(colnames(l)),a,colnames(l))
+    }else{
+      annonames <- rownames(l@predSpline)
+    }
+    data.frame(ID=annonames, Cluster=isolate(classif()))
+  })
   
+  output$downloadClassifData <- downloadHandler(
+    
+    filename = function() { paste('Classification',input$variable,input$cluster_num,Sys.Date(),'.csv', sep='') },
+    content = function(file) {
+      write.csv(datasetClassifInput(), file,row.names=F)
+    })
+  
+  # output$downloadClusterPlot <- downloadHandler(
+  #   filename <- function() {
+  #     paste('Plot_',input$variable,input$cluster_num,Sys.Date(),'.ps',sep='') },
+  #   content <- function(file) {
+  #     postscript(file, width = 4.92, height = 3.2,
+  #                family = "Arial", paper = "special", onefile = FALSE,
+  #                horizontal = FALSE, pointsize = 12,bg = "white")
+  #     top6.plot <- makePlot(input$variable,input$cluster_num,input$correlation)
+  #     print(top6.plot)
+  #     dev.off()},
+  #   contentType = 'image/ps'
+  # )
+  
+  output$downloadData <- downloadHandler(
+    filename = function() { paste('GOEnrichment',input$variable,input$cluster_num,Sys.Date(),'.csv', sep='') },
+    content = function(file) {
+      write.csv(datasetInput(), file,row.names=F)
+    }
+  ) 
 ############### Differential Expression functions #############
 
 
 output$DEInfoText <- renderText({
   if (input$DEtable== 0)
     return()
-  #input$submitVisu
-  print('Update text')
   paste("Analysed",sum(indexFinal,na.rm=T),"molecules for differential expression.")
 })
 
@@ -1317,10 +1359,8 @@ output$DEInfoText <- renderText({
 output$DETable =  DT::renderDataTable({
   if (input$DEtable== 0)
     return()
- 
-   de <- datatable(DEoutput()@DE,selection = 'single')
-  
-   return(de)
+  de <- datatable(DEoutput()@DE,selection = 'single')
+  return(de)
 }, options = list(server=TRUE,rownames=TRUE))
 
 
@@ -1333,27 +1373,23 @@ DEoutput <- reactive({
     indexFinal <<- rep(T,ncol(ExpData()$data))
   
   ExpData <- ExpData()$data[,indexFinal]
-  
   time <- TimeData()$data
   group <- GroupData()$data
   replicate <- RepData()$data
-  
-  print(input$RunExample)
+
   if(input$RunExample!=0 & !is.null(ExampleExp)){
-    ExpData <- ExampleExp
+    Example()
     if(is.null(indexFinal))
-    indexFinal <<- rep(T,ncol(ExpData))
-    
-    ExpData <-  ExpData[,indexFinal]
+      indexFinal <<- rep(T,ncol(ExpData))
+    ExpData <-  ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     group <- unlist(ExampleGroup)
     replicate <- unlist(ExampleSample)
   }
-  print(dim(ExpData))
-  print(length(time))
   if((!is.null(ExpData)&!is.null(time)&!is.null(replicate)&!is.null(group)&is.null(lmm.de))| changedPath()){
     withProgress(message = 'Differential expression analysis in progress', value = 0.1, {
-    lmm.de <<- lmmsDE(data=ExpData,sampleID=replicate, time=time, group=group,type=isolate(input$Type),basis=isolate(input$Basis),experiment=isolate(input$experiment))
+      lmm.de <<- lmmsDE(data=ExpData,sampleID=replicate, time=time, group=group,
+                        type=isolate(input$Type),basis=isolate(input$Basis),experiment=isolate(input$experiment))
     })
      }else{
     warning("Please check the availability of the expression data, group, time and replicates ")
@@ -1362,79 +1398,36 @@ DEoutput <- reactive({
 })
 
 output$DEPlot <- renderPlot({
- 
+  l <- DEoutput()
+  if(is.null(l))
+    return()
   s <- input$DETable_rows_selected
   if (!length(s))
-    return()
-  
-  l <- DEoutput()
+    s <-1
 ## Currently a data table bug as it should select only single arguments
   ### CHANGE IF DT R package is updated
   v <- as.numeric(s)[length(s)]
- # v <- which(l@DE$Molecule%in%input$DETable[1])
-
-
-
+  if(is.null(indexFinal) & !is.null(ExpData()$data))
+    indexFinal <<- rep(T,ncol(ExpData))
   ExpData <- ExpData()$data[,indexFinal]
   time <- TimeData()$data
   group <- GroupData()$data
   
   if(input$RunExample & input$RunExample!=0){
+    Example()
+    if(is.null(indexFinal))
+      indexFinal <<- rep(T,ncol(ExampleExp))
     ExpData <- ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     group <- unlist(ExampleGroup)
     replicate <- unlist(ExampleSample)
   }
-
-  p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,group = group,time = time,mean=input$DEPlotMean,smooth=input$DEPlotSmooth)+theme_bw()
+  p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,group = group,
+            time = time,mean=input$DEPlotMean,smooth=input$DEPlotSmooth)+theme_bw()
   print(p)
 })
 
-##write data
-datasetClassifInput <- reactive({
-  l <- LMMData()
-  print('LMMData')
-  if(is.null(l)){
-    l <- ExpData()$data[,indexFinal]
-    a <- as.character(unlist(AnnotData()))[indexFinal]
-    
-    # print(colnames(l))
-    annonames <- if(is.null(colnames(l))) a else colnames(l)
-    #print(annonames)
-  }else{
-    annonames <- rownames(l@predSpline)
-  }
 
-  data.frame(ID=annonames, Cluster=isolate(classif()))
-})
-  
-output$downloadClassifData <- downloadHandler(
-
-  filename = function() { paste('Classification',input$variable,input$cluster_num,Sys.Date(),'.csv', sep='') },
-  content = function(file) {
-    write.csv(datasetClassifInput(), file,row.names=F)
-  }
-)
-
-output$downloadClusterPlot <- downloadHandler(
-  filename <- function() {
-    paste('Plot_',input$variable,input$cluster_num,Sys.Date(),'.ps',sep='') },
-  content <- function(file) {
-    postscript(file, width = 4.92, height = 3.2,
-               family = "Arial", paper = "special", onefile = FALSE,
-               horizontal = FALSE, pointsize = 12,bg = "white")
-    top6.plot <- makePlot(input$variable,input$cluster_num,input$correlation)
-    print(top6.plot)
-    dev.off()},
-  contentType = 'image/ps'
-)
-
-  output$downloadData <- downloadHandler(
-    filename = function() { paste('GOEnrichment',input$variable,input$cluster_num,Sys.Date(),'.csv', sep='') },
-    content = function(file) {
-      write.csv(datasetInput(), file,row.names=F)
-    }
-  )
   
 output$downloadDEData <- downloadHandler(
   filename = function() { paste('DEAnalysis',input$Type,Sys.Date(),'.csv', sep='') },
@@ -1446,7 +1439,9 @@ output$downloadDEData <- downloadHandler(
 
 ###### PDF VIEWER ########
 output$pdfviewer <- renderText({
-  pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
+  if(input$ShowUserGuide==0)
+    return()
+ # pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
   observeEvent(input$ShowUserGuide, {
     print('event')
     pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
