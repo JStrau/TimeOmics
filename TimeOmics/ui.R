@@ -219,10 +219,10 @@ shinyUI(pageWithSidebar(
     conditionalPanel(condition = "input.Tabs == 'Example and Help'",
                      wellPanel(
                        p(strong("Example")),
-                       helpText("Please click on 'Run Example' to upload example data."),
-                       actionButton("RunExample","Run example"),
+                       helpText("Please click on 'Run Example' to upload multi sample example data."),
+                       checkboxInput("RunExample","Run example",value = F),
                        p(strong("User guide")),
-                       helpText("Note: If your browser cannot show the pdf within the shiny application the file is also available in the www folder."),
+                       helpText("Note: If your browser cannot display the pdf within the shiny application the file is also available in the www folder."),
                        actionButton("ShowUserGuide","User guide")
                      )
     )
@@ -244,7 +244,7 @@ shinyUI(pageWithSidebar(
     
     tabPanel("Upload",
               fluidRow( uiOutput("Group_Checkbox")),
-             textOutput("result"),
+              textOutput("result"),
               checkboxInput(inputId = "dens",
                            label = strong("Show density"),
                            value = FALSE),
@@ -271,6 +271,7 @@ shinyUI(pageWithSidebar(
     ############### MODELLING #################
     
     tabPanel("Model",
+             textOutput("textAnaModel"),
                   checkboxInput(inputId = "ModelPlotMean",
                            label = strong("Show mean"),
                            value = FALSE),
@@ -284,6 +285,7 @@ shinyUI(pageWithSidebar(
     ############### Clustering #################       
     
     tabPanel("Cluster",
+      textOutput("textAnaModelCluster"),
       h3(textOutput("caption1")),
       plotOutput("clusterValidation"),
       h3(textOutput("caption")),

@@ -199,14 +199,15 @@ changedPath <- reactive({
 
 Example <- reactive({
   print('runexample')
-  if(input$RunExample!=0 & is.null(ExampleExp)){
-    print(getwd())
+  updateTabsetPanel(session, 'Tabs', selected = 'Upload')
+  if(input$RunExample & is.null(ExampleExp)){
+   # print(getwd())
     load('ExampleData/Example.RData')
     ExampleExp <<- ExampleExp
     ExampleGroup <<- ExampleGroup
     ExampleTime <<- ExampleTime
     ExampleSample <<- ExampleSample
-    print(ls())
+  
     indexFinal <<- rep(TRUE,ncol(ExampleExp))
     
     }
@@ -218,22 +219,29 @@ Example <- reactive({
     # generate an rnorm distribution and plot it
     ExpData <- ExpData()$data
     
-    if(input$RunExample & input$RunExample!=0){
+    if(input$RunExample){
       Example()
       ExpData <- ExampleExp
-      }
+    }
+    
     if(!is.null(ExpData)){
      
       group <<-NULL
     
-      if(is.null(GroupData()$data)){
-        group <<- rep("1",nrow(ExpData))
+      if(is.null(GroupData()$data) & !input$RunExample){
+        group <<- factor(1:nrow(ExpData))
       }else{
-        group <<- GroupData()$data
+        if(input$RunExample)group<<- as.character(unlist(ExampleGroup))else group<<- as.character(GroupData()$data)
+        g <- input$GroupsSel
+        if(is.null(g))
+          g <- unique(na.omit(group))[1]
+        
+         index.g <- group%in%g
+         ExpData <- ExpData[index.g,]
+         group <<- group[index.g]
       }
-      group.tmp <-NULL
-      group.tmp <- as.factor(rep(group,ncol(ExpData)))
-      mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=group.tmp)
+
+      mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=as.factor(rep(group,ncol(ExpData))))
    
       #density plot
       #m <- qplot(Expression, data=mes, geom='density',fill="red") + theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank())
@@ -253,25 +261,39 @@ Example <- reactive({
 output$Boxplot <- renderPlot({
 
   ExpData <- ExpData()$data
-  if(input$RunExample & input$RunExample!=0){
+
+  if(input$RunExample){
     Example()
     ExpData <- ExampleExp
   }
   
   if(!is.null(ExpData)){
-    
-  numberRow <- nrow(ExpData)
-  numberCol <- ncol(ExpData)
-  mes <- data.frame(Expression=as.vector(unlist(ExpData)),Sample=1:numberRow)
+    numberRow <- nrow(ExpData)
+    numberCol <- ncol(ExpData)
+    if(is.null(GroupData()$data) & !input$RunExample){
+      group <<- factor(1:numberRow)
+    }else{
+      if(input$RunExample)group<<- as.character(unlist(ExampleGroup))else group<<- as.character(GroupData()$data)
+      g <- input$GroupsSel
+      if(is.null(g))
+        g <- unique(na.omit(group))[1]
+      
+      index.g <- group%in%g
+      ExpData <- ExpData[index.g,]
+      group <- group[index.g]
+    }
+  mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=factor(rep(group,each=ncol(ExpData))),Sample=as.factor(rep((1:sum(index.g)),each=ncol(ExpData))))
+  print(head(mes))
   geom <- 'boxplot'
   main <-"Boxplot of the samples"
   if(input$densSample){
     geom <-'density'
     main <-"Density of the samples"
-    q <-qplot(Expression,color=as.factor(Sample),geom =geom ,data=mes)+theme_bw()+ theme(legend.position="none")#theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank(),legend.position="none")#+ scale_fill_brewer(palette="Dark2") 
+
+    q <-qplot(Expression,group=Sample,color=Group,geom =geom ,data=mes)+theme_bw()+ theme(legend.position="none")#theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank(),legend.position="none")#+ scale_fill_brewer(palette="Dark2") 
     
   }else{
-    q <-qplot(y=Expression,x=Sample,main=,fill=as.factor(Sample),geom =geom ,data=mes)+theme_bw()+ theme(legend.position="none")#theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank(),legend.position="none")#+ scale_fill_brewer(palette="Dark2") 
+    q <-qplot(y=Expression,x=Sample,group=Sample,main=main,fill=Group,geom =geom ,data=mes)+theme_bw()+ theme(legend.position="none")#theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank(),legend.position="none")#+ scale_fill_brewer(palette="Dark2") 
     
   }
    print(q)
@@ -299,12 +321,12 @@ output$Boxplot <- renderPlot({
 #####################  FILTER FUNCTIONS  #################
 
 
-output$result <- reactivePrint( function() {
+output$result <- renderText( function() {
   g <- input$GroupsSel
   
   group <- GroupData()$data
-  if(is.null(group))
-    return()
+  if(is.null(group) & is.null(g))
+    return('Please upload a data set or tick the `Run example` checkbox in the `Example and Help` tab.')
   
   if(input$RunExample){
     Example()
@@ -324,6 +346,7 @@ output$result <- reactivePrint( function() {
 
  
 })
+
 
 output$Group_Checkbox <- renderUI({
   group <- GroupData()$data
@@ -362,7 +385,7 @@ noiseDatanew <- reactive({
  ## f <- FALSE
 #  m <- FALSE
   summaMis <- summaFC <- summa <-''
-  if(input$RunExample!=0){
+  if(input$RunExample){
     Example()
     ExpData <- ExampleExp
     time <- unlist(ExampleTime)
@@ -702,11 +725,10 @@ output$filter_group <- renderUI({
   group <- GroupData()$data
   changedPath <- GroupData()$changedPath
   
-  if(input$RunExample & input$RunExample!=0){
+  if(input$RunExample){
     Example()
     group <- unlist(ExampleGroup)
   } 
-  print(group)
 
   if(!is.null(group) | changedPath){
     grpf <- unique(as.character(group))
@@ -970,24 +992,43 @@ LMMData <- reactive({
     print(dim(ExpData))
   }
   time <- TimeData()$data
-  #group <- GroupData()$data
+  group <- GroupData()$data
   replicate <- RepData()$data
   annotation <- AnnotData()
   
-  if(input$RunExample!=0){
+  if(input$RunExample){
     Example()
      if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExampleExp))
     ExpData <-ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     replicate <- unlist(ExampleSample)
+    group <- unlist(ExampleGroup)
+    lmm <<- NULL
   }
+  g <- input$GroupsSel
+  if(is.null(g))
+    g <- na.omit(unique(group))
+
   if(!is.null(annotation)){
     colnames(ExpData) <- as.character(unlist(annotation))[indexFinal]
   }
   if(!is.null(ExpData)&!is.null(time)&!is.null(replicate)&is.null(lmm)){
     withProgress(message = 'Modelling in progress', value = 0.1, {
-      lmm <<- lmmSpline(data=ExpData,sampleID=replicate, time=time, basis=isolate(input$Basis),keepModels = F)
+      if(length(g)==1){
+        gr1 <- which(group%in%g)
+      lmm <<- lmmSpline(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1], basis=isolate(input$Basis),keepModels = F)
+      
+      }else{
+        l <- list()
+        for(i in g){
+          print(i)
+          gr1 <- which(group%in%i)
+          lmm <<- lmmSpline(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1], basis=isolate(input$Basis),keepModels = F,timePredict = na.omit(sort(unique(time))))
+        l[[i]] <- lmm
+          }
+        lmm <<- l
+      }
     })
   }else{
     warning("Please check the availability of the expression data, group, time and replicates.")
@@ -996,13 +1037,24 @@ LMMData <- reactive({
 })  
 
 output$ModelTable<- renderText({
-  print('renderTab')
+
   input$Modelling
   lmm <- LMMData()
   if(is.null(lmm))
     return()
+  if(class(lmm)=='lmmspline'){
   p <- paste(names(table(lmm@modelsUsed)),as.vector(table(lmm@modelsUsed)),sep=":")
   HTML(paste("Table of models used to model the molecule expression:", paste(p,collapse='<br>'),sep="<br>"))
+  }else{
+    gr <- input$GroupsSel
+    ht <-''
+    for(i in 1:length(gr)){
+      p <- paste(names(table(lmm[[i]]@modelsUsed)),as.vector(table(lmm[[i]]@modelsUsed)),sep=":")
+      ht <- paste(ht,paste("<br> Table of models used to model the molecule expression group ",gr[i],':', paste(p,collapse='<br>'),sep=" "))
+    }
+    
+    HTML(ht)
+  }
 })
 
 
@@ -1011,7 +1063,12 @@ output$downloadModel <- downloadHandler(
   print('download'),
   filename = function() { paste('ModelledTrajectories',Sys.Date(),'.csv', sep='') },
   content = function(file) {
-    write.csv(LMMData()@predSpline, file,row.names=F)
+    l <- LMMData()
+    if(class(l)=='lmespline'){
+    write.csv(l@predSpline, file,row.names=F)
+    }else{
+      write.csv(rbind(l[[1]]@predSpline,l[[2]]@predSpline), file,row.names=F)
+    }
   }
 )
 
@@ -1029,7 +1086,17 @@ output$ModelTables =  DT::renderDataTable({
   lmm <- LMMData()
   if(is.null(lmm))
     return()
-  df <- data.frame(Molecule=rownames(lmm@predSpline),Model=lmm@modelsUsed)
+  if(class(lmm)=='lmmspline'){
+    p <- paste(names(table(lmm@modelsUsed)),as.vector(table(lmm@modelsUsed)),sep=":")
+    HTML(paste("Table of models used to model the molecule expression:", paste(p,collapse='<br>'),sep="<br>"))
+  }else{
+    gr <- isolate(input$GroupsSel)
+    print(class(lmm))
+    print(names(lmm))
+    print(gr)
+    df <- data.frame(Molecule=c(rownames(lmm[[1]]@predSpline),rownames(lmm[[2]]@predSpline)),Model=c(lmm[[1]]@modelsUsed,lmm[[2]]@modelsUsed),Group=rep(gr,each=length(lmm[[1]]@modelsUsed)))
+  }
+
   dt <- datatable(df,selection = 'single')
   
   return(dt)
@@ -1053,17 +1120,46 @@ output$ModelPlot <- renderPlot({
   ExpData <- ExpData()$data[,indexFinal]
   time <- TimeData()$data
   group <- GroupData()$data
-  
-  if(input$RunExample & input$RunExample!=0){
+  print(v)
+  if(input$RunExample){
     Example()
     ExpData <- ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
-    replicate <- unlist(ExampleSample)
+    group <- unlist(ExampleGroup)
+    
   }
-  p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,time = time,mean=input$ModelPlotMean,smooth=input$ModelPlotSmooth)+theme_bw()
+  if(class(l)=='lmmspline'){
+    p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,time = time,mean=input$ModelPlotMean,smooth=input$ModelPlotSmooth)+theme_bw()
+  }else{
+    len <- length(l[[1]]@modelsUsed)
+
+    if(v<len){
+      g <- 1
+    }else{
+      g <- 2
+      v <- v-len
+    }
+    index <-group==input$GroupsSel[g]
+    p <- plot(l[[g]],v,data=ExpData[index,],type=input$Radio_DEplot,time = time[index],mean=input$ModelPlotMean,smooth=input$ModelPlotSmooth)+theme_bw()
+  }
+
   print(p)
 })
 
+output$textAnaModel <- renderText( function() {
+  if(!is.null(input$GroupsSel)){
+    if(input$RunExample){
+    p <- paste('Analysis is going to be performed on the Example data set with group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Select a basis and press the `Model` button to model the data.',collapse='')
+    }else{
+      p <- paste('Analysis is going to be performed on group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Select a basis and press the `Model` button to model the data.',collapse='')
+    
+    }
+    
+  }else{
+      p <- 'Please upload a data set or tick the `Run example` checkbox in the `Example and Help` tab.'
+    }
+  p
+})
 
   ########Clustering functions########
   
@@ -1091,7 +1187,12 @@ output$ModelPlot <- renderPlot({
     if(is.null(lmms)){
       lmms <- t(ExpData()$data[,indexFinal])
     }else{
-      lmms <- lmms@predSpline
+      if(class(lmms)=='lmmspline'){
+        lmms <- lmms@predSpline
+      }else{
+        lmms <- rbind(lmms[[1]]@predSpline,lmms[[2]]@predSpline)
+        }
+    
     }
     
     stab <- NULL
@@ -1107,11 +1208,17 @@ output$ModelPlot <- renderPlot({
 
     withProgress(message = 'Clustering in progress', value = 0.1, {
     tmp.data<-LMMData()
+
     print('cluster')
     if(is.null(tmp.data)){
       tmp.data <- t(ExpData()$data[,indexFinal])
     }else{
-      tmp.data <-tmp.data@predSpline
+    
+      if(class(tmp.data)=='lmmspline'){
+        tmp.data <- tmp.data@predSpline
+      }else{
+        tmp.data <- rbind(tmp.data[[1]]@predSpline,tmp.data[[2]]@predSpline)
+      }
     }
     
     if(cor)
@@ -1162,7 +1269,7 @@ output$ModelPlot <- renderPlot({
         indexFinal <- rep(T,nrow(data.lmm@predSpline))
       data.lmm <- data.lmm@predSpline[indexFinal,]
     }
-    print(head(data.lmm))
+    #print(head(data.lmm))
     if(is.null(rownames(data.lmm)))
       rownames(data.lmm) <- which(indexFinal==T)
     
@@ -1346,9 +1453,40 @@ output$ModelPlot <- renderPlot({
       write.csv(datasetInput(), file,row.names=F)
     }
   ) 
+  
+  output$textAnaModelCluster <- renderText( function() {
+    if(!is.null(input$GroupsSel)){
+      if(input$RunExample){
+        p <- paste('Analysis is going to be performed on the Example data set with group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Perform a cluster validation to find the number of cluster and algorithm with the highest stability (lowest CPNs) or immidialty cluster and visualize the data.',collapse='')
+      }else{
+        p <- paste('Analysis is going to be performed on group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Perform a cluster validation to find the number of cluster and algorithm with the highest stability (lowest CPNs) or immidialty cluster and visualize the data.',collapse='')
+        
+      }
+      
+    }else{
+      p <- 'Please upload a data set or tick the `Run example` checkbox in the `Example and Help` tab.'
+    }
+    p
+  })
+  
+  
+  
 ############### Differential Expression functions #############
 
-
+  output$textAnaModelDE <- renderText( function() {
+    if(!is.null(input$GroupsSel)){
+      if(input$RunExample){
+        p <- paste('Analysis is going to be performed on the Example data set with group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Select a differential expression analysis over time, between groups or time and group interaction.',collapse='')
+      }else{
+        p <- paste('Analysis is going to be performed on group/s:',paste(unlist(input$GroupsSel),collapse = ' and '),'. Perform a cluster validation to find the number of cluster and algorithm with the highest stability (lowest CPNs) or immidialty cluster and visualize the data.',collapse='')
+        
+      }
+      
+    }else{
+      p <- 'Please upload a data set or tick the `Run example` checkbox in the `Example and Help` tab.'
+    }
+    p
+  })
 output$DEInfoText <- renderText({
   if (input$DEtable== 0)
     return()
@@ -1377,7 +1515,7 @@ DEoutput <- reactive({
   group <- GroupData()$data
   replicate <- RepData()$data
 
-  if(input$RunExample!=0 & !is.null(ExampleExp)){
+  if(input$RunExample & !is.null(ExampleExp)){
     Example()
     if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExpData))
@@ -1413,7 +1551,7 @@ output$DEPlot <- renderPlot({
   time <- TimeData()$data
   group <- GroupData()$data
   
-  if(input$RunExample & input$RunExample!=0){
+  if(input$RunExample){
     Example()
     if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExampleExp))
