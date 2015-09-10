@@ -26,7 +26,7 @@ getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us
 
 ##CHANGE DE plot if DT package selection="single" is updated
 #d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','DT') # etc.
+x <- c("shiny", "shinydashboard",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','DT','mclust') # etc.
 lapply(c(x), getPackage, silent = TRUE)
 
 if(!require(org.Hs.eg.db)){
@@ -67,11 +67,10 @@ shinyUI(pageWithSidebar(
                 accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv'),multiple=FALSE),
       tags$hr(),
       checkboxInput('header', 'Header', TRUE),
-      radioButtons('sep', 'Separator',
-                   c(Comma=',',
-                     Semicolon=';',
-                     Tab='\t'),
-                   'Comma'),
+      radioButtons('sep', 'Separator:',
+                   c("Comma"=',',
+                     "Semicolon"=';',
+                     "Tab"='\t')),
       helpText("Note: Please have the samples as row and the molecules as column."),
       fileInput("TimeData", "Time vector", multiple=FALSE),
       fileInput("ReplicateData", "Sample ID vector", multiple=FALSE),
@@ -112,7 +111,7 @@ shinyUI(pageWithSidebar(
                        hr(),
                        fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Don't use filter ratios"="Non","Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
                        hr(),
-                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), actionButton('ApplyFilter', 'Apply')),
+                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filter for further analysis',FALSE)),
                        
                        fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
    
@@ -146,13 +145,14 @@ shinyUI(pageWithSidebar(
     wellPanel(
      # HTML(tags$style(".span12 {background-color: black;}"))
       p(strong("Cluster validation")),
-      checkboxInput(inputId = "correlation", label = "Correlation", value = TRUE),
-      p("Select algoritms:"),
+      #checkboxInput(inputId = "correlation", label = "Correlation", value = TRUE),
+      radioButtons("Radio_Correlation", "Select distance matrix",c("Correlation" = "correlation","Euclidean"="euclidean")),
+      p(strong("Select algoritms:")),
       checkboxInput(inputId = "hierarchical", label = "Hierarchical Clustering", value = TRUE),
       checkboxInput(inputId = "kmeans", label = "Kmeans", value = TRUE),
-      checkboxInput(inputId = "pam", label = "PAM", value = TRUE),
-      checkboxInput(inputId = "som", label = "Self-Organizing Maps", value = TRUE),
-      checkboxInput(inputId = "model", label = "Model based clustering", value = TRUE),
+      checkboxInput(inputId = "pam", label = "PAM", value = FALSE),
+      checkboxInput(inputId = "som", label = "Self-Organizing Maps", value = FALSE),
+      checkboxInput(inputId = "model", label = "Model based clustering", value = FALSE),
       uiOutput("cluster_range_slider"),
       actionButton("submitVali","Update View")
     ),
@@ -249,7 +249,7 @@ shinyUI(pageWithSidebar(
                            label = strong("Show density"),
                            value = FALSE),
                               plotOutput("HistPlot"),
-             checkboxInput(inputId = "densSample",
+              checkboxInput(inputId = "densSample",
                            label = strong("Show density"),
                            value = FALSE),
              
@@ -271,7 +271,7 @@ shinyUI(pageWithSidebar(
     ############### MODELLING #################
     
     tabPanel("Model",
-             textOutput("textAnaModel"),
+             htmlOutput("textAnaModel"),
                   checkboxInput(inputId = "ModelPlotMean",
                            label = strong("Show mean"),
                            value = FALSE),
@@ -285,10 +285,11 @@ shinyUI(pageWithSidebar(
     ############### Clustering #################       
     
     tabPanel("Cluster",
-      textOutput("textAnaModelCluster"),
+      htmlOutput("textAnaModelCluster"),
       h3(textOutput("caption1")),
       plotOutput("clusterValidation"),
       h3(textOutput("caption")),
+      checkboxInput(inputId='colorGroup', label = strong("Color by group"),value= TRUE),
       plotOutput("clusterPlot"),
       DT::dataTableOutput('GOEnrichment')),
       

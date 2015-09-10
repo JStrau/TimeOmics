@@ -32,7 +32,7 @@ clValid2 <- function (obj, nClust, clMethods = "hierarchical", validation = "sta
     if(load) suppressPackageStartupMessages(library(pkg, character.only = TRUE, quietly = TRUE))
     if(load & !silent) message("Loaded ", pkg)
   }
-  d <- c('kohonen','Rmixmod')
+  d <- c('kohonen','mclust')
   lapply(c(d), getPackage, silent = TRUE)
   
   if ("som" %in% clMethods) {
@@ -41,8 +41,8 @@ clValid2 <- function (obj, nClust, clMethods = "hierarchical", validation = "sta
     }
   }
   if ("model" %in% clMethods) {
-    if (!require(Rmixmod)) {
-      stop("package 'Rmixmod' required for model-based clustering")
+    if (!require(mclust)) {
+      stop("package 'mclust' required for model-based clustering")
     }
   }
   
@@ -195,12 +195,9 @@ vClusters2 <- function (mat, clMethod, nClust, nclustMax, validation, Dist,
       cluster <- clusterObj[[ind]]$clustering
     }, model = {
       print(dim(mat))
-      t <- mixmodCluster(as.data.frame(mat), nbCluster = nc, ...)
-      print(t@bestResult@partition)
-      clusterObj[[ind]] <- mixmodCluster(as.data.frame(mat), nbCluster = nc, ...)
-      
-      cluster <- clusterObj[[ind]]@bestResult@partition
-      print(cluster)
+   
+      clusterObj[[ind]] <- Mclust(as.data.frame(mat), G = nc, ...)
+      cluster <- clusterObj[[ind]]$classification
     }, som = {
       clusterObj[[ind]] <- som(mat, grid = somgrid(1, nc), 
                                ...)
@@ -288,7 +285,7 @@ vClusters2 <- function (mat, clMethod, nClust, nclustMax, validation, Dist,
           hfdel <- fanny(DistDel, nc, ...)
           clusterDel <- hfdel$clustering
         }, model = {
-          clusterDel <- mixmodCluster(as.data.frame(matDel), nbCluster = nc, ...)@bestResult@partition
+          clusterDel <- Mclust(as.data.frame(matDel), G = nc, ...)$classification
          
         }, som = {
           hsdel <- try(som(matDel, grid = somgrid(1, 

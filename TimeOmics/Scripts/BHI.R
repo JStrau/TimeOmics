@@ -16,7 +16,7 @@
 
 biological.homogenity <- function(cluster,ident,ontology="all",identifier="Gene symbol",db="org.Hs.eg.db",background=NULL){
   
-  if(length(grep("IPI",ident[1:10]))>0)
+  if(length(grep("^IPI",ident[1:10]))>0)
     identifier <-"IPI"
 
   getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
