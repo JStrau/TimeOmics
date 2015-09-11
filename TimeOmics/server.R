@@ -65,7 +65,7 @@ log <- TRUE
 investNoiseData1 <- investNoiseData2 <- NULL
 resetfilter <- 0
 
-plot <- hcChanged <- kmChanged <-somChanged <-modelChanged <-ClRangeChanged1 <- ClRangeChanged2 <-matrixChanged<-pamChanged <-0
+plot <-grSelDE<- hcChanged <- kmChanged <-somChanged <-modelChanged <-ClRangeChanged1 <- ClRangeChanged2 <-matrixChanged<-pamChanged <-0
 
 shinyServer(function(input, output,session) {
 ExampleExp <- NULL
@@ -197,11 +197,11 @@ changedPath <- reactive({
 
 ### LOAD EXAMPLE DATA ON BUTTON RUNEXAMPLE####
 
-Example <- reactive({
-  print('runexample')
-  updateTabsetPanel(session, 'Tabs', selected = 'Upload')
+Example <- observe({
+ 
   if(input$RunExample & is.null(ExampleExp)){
    # print(getwd())
+    updateTabsetPanel(session, 'Tabs', selected = 'Upload')
     load('ExampleData/Example.RData')
     ExampleExp <<- ExampleExp
     ExampleGroup <<- ExampleGroup
@@ -210,8 +210,10 @@ Example <- reactive({
   
     indexFinal <<- rep(TRUE,ncol(ExampleExp))
     
-    }
-  
+  }
+
+  lmm.de <<- NULL
+  lmm <<- NULL
 })
 
   output$HistPlot <- renderPlot({
@@ -220,7 +222,7 @@ Example <- reactive({
     ExpData <- ExpData()$data
     
     if(input$RunExample){
-      Example()
+      #Example()
       ExpData <- ExampleExp
     }
     
@@ -256,14 +258,23 @@ Example <- reactive({
 
     }
   })
- 
+  
+  
+  
+
+obsB <- observe({
+  print('observe')
+  input$GroupsSel
+
+})
+
 
 output$Boxplot <- renderPlot({
 
   ExpData <- ExpData()$data
 
   if(input$RunExample){
-    Example()
+   # Example()
     ExpData <- ExampleExp
   }
   
@@ -283,7 +294,7 @@ output$Boxplot <- renderPlot({
       group <- group[index.g]
     }
   mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=factor(rep(group,each=ncol(ExpData))),Sample=as.factor(rep((1:sum(index.g)),each=ncol(ExpData))))
-  print(head(mes))
+
   geom <- 'boxplot'
   main <-"Boxplot of the samples"
   if(input$densSample){
@@ -329,7 +340,7 @@ output$result <- renderText( {
     return('Please upload a data set or tick the `Run example` checkbox in the `Example and Help` tab.')
   
   if(input$RunExample){
-    Example()
+   # Example()
     group <- as.character(unlist(ExampleGroup))
   }
   ##There always needs to be one group selected
@@ -351,7 +362,7 @@ output$result <- renderText( {
 output$Group_Checkbox <- renderUI({
   group <- GroupData()$data
   if(input$RunExample){
-    Example()
+  #  Example()
     group <- as.character(unlist(ExampleGroup))
   }
     
@@ -362,7 +373,7 @@ output$Group_Checkbox <- renderUI({
   for(x in group){
   cb_options[[x]] <- x
   }
-  print(cb_options)
+
   text <-'Detected group'
   if(length(group)>1)
     text <- "Select 1 or 2 of the detected groups"
@@ -386,7 +397,7 @@ noiseDatanew <- reactive({
 #  m <- FALSE
   summaMis <- summaFC <- summa <-''
   if(input$RunExample){
-    Example()
+   # Example()
     ExpData <- ExampleExp
     time <- unlist(ExampleTime)
     group <- as.character(unlist(ExampleGroup))
@@ -981,10 +992,8 @@ LMMData <- reactive({
     return()
   ExpData <- ExpData()$data
   if(is.null(indexFinal)& !is.null(ExpData)){
-    print(indexFinal)
     indexFinal <<- rep(T,ncol(ExpData))
     ExpData <- ExpData[,indexFinal]
-    print(dim(ExpData))
   }
   time <- TimeData()$data
   group <- GroupData()$data
@@ -992,7 +1001,7 @@ LMMData <- reactive({
   annotation <- AnnotData()
   
   if(input$RunExample){
-    Example()
+   # Example()
      if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExampleExp))
     ExpData <-ExampleExp[,indexFinal]
@@ -1017,7 +1026,6 @@ LMMData <- reactive({
       }else{
         l <- list()
         for(i in g){
-          print(i)
           gr1 <- which(group%in%i)
           lmm <<- lmmSpline(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1], basis=isolate(input$Basis),keepModels = F,timePredict = na.omit(sort(unique(time))))
         l[[i]] <- lmm
@@ -1059,7 +1067,7 @@ output$downloadModel <- downloadHandler(
   filename = function() { paste('ModelledTrajectories',Sys.Date(),'.csv', sep='') },
   content = function(file) {
     l <- LMMData()
-    if(class(l)=='lmespline'){
+    if(class(l)=='lmmspline'){
     write.csv(l@predSpline, file,row.names=F)
     }else{
       write.csv(rbind(l[[1]]@predSpline,l[[2]]@predSpline), file,row.names=F)
@@ -1112,9 +1120,8 @@ output$ModelPlot <- renderPlot({
   ExpData <- ExpData()$data[,indexFinal]
   time <- TimeData()$data
   group <- GroupData()$data
-  print(v)
   if(input$RunExample){
-    Example()
+    #Example()
     ExpData <- ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     group <- unlist(ExampleGroup)
@@ -1201,8 +1208,6 @@ output$textAnaModel <- renderText({
 
     withProgress(message = 'Clustering in progress', value = 0.1, {
     tmp.data<-LMMData()
-
-    print('cluster')
     if(is.null(tmp.data)){
       tmp.data <- t(ExpData()$data)
     }else{
@@ -1271,13 +1276,13 @@ output$textAnaModel <- renderText({
       }
     }
 
-    #print(head(data.lmm))
+
     if(is.null(rownames(data.lmm)))
       rownames(data.lmm) <- 1:nrow(data.lmm)
     
     time <- TimeData()$data
     if(is.null(time)){
-      Example()
+     # Example()
       time <- unlist(ExampleTime)
     }
 
@@ -1409,7 +1414,6 @@ output$textAnaModel <- renderText({
     
     if(length(class)!=length(cl)| !all(cl==class)){
       class <<- cl
-      print('GO enrich')
       
       withProgress(message = 'GO enrichment analysis in progress', value = 0.1, {
       enrich <<-biological.homogenity(cl,ident=annonames,identifier="IPI",ontology=input$ontology,db=input$organism)     
@@ -1501,7 +1505,7 @@ output$DEInfoText <- renderText({
 
 
 output$DETable =  DT::renderDataTable({
-  if (input$DEtable== 0)
+  if (input$DEtable== 0|is.null(DEoutput()))
     return()
   de <- datatable(DEoutput()@DE,selection = 'single')
   return(de)
@@ -1517,11 +1521,16 @@ DEoutput <- reactive({
     return()
   if(is.null(indexFinal) & !is.null(ExpData()$data))
     indexFinal <<- rep(T,ncol(ExpData()$data))
-  print(input$GroupsSel)
+  current_groupSel <- isolate(input$GroupsSel)
+  #if(grSelDE!=current_groupSel|length(grSelDE)!=length(current_groupSel))
+  #  lmm.de <<- NULL
+    
+  grSelDE <<-current_groupSel
+  
   if(!is.null(ExpData()$data) & !input$RunExample){
-    Example()
+   # Example()
     group <- GroupData()$data
-    if(!is.null(isolate(input$GroupsSel))){ gr <- isolate(input$GroupsSel)}else{gr <- as.character(unique(group))}
+    if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
     print(gr)
     grIndex <- which(as.character(group)%in%gr)
     print(grIndex)
@@ -1532,12 +1541,12 @@ DEoutput <- reactive({
     print(grIndex)
   }
 
-  if(input$RunExample & !is.null(ExampleExp)){
-    Example()
+  if(input$RunExample){
+   # Example()
     if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExpData))
     group <- unlist(ExampleGroup)
-    if(!is.null(isolate(input$GroupsSel))){ gr <- isolate(input$GroupsSel)}else{gr <- as.character(unique(group))}
+    if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
     print(gr)
     grIndex <- which(as.character(group)%in%gr)
     print(grIndex)
@@ -1547,8 +1556,11 @@ DEoutput <- reactive({
     group <- group[grIndex]
   }
   
-
-  print(grIndex)
+  print(!is.null(ExpData))
+  print(is.null(lmm.de))
+  print(!is.null(replicate))
+  print(!is.null(group))
+  print(!is.null(time))
   if((!is.null(ExpData)&!is.null(time)&!is.null(replicate)&!is.null(group)&is.null(lmm.de))| changedPath()){
     withProgress(message = 'Differential expression analysis in progress', value = 0.1, {
       lmm.de <<- lmmsDE(data=ExpData,sampleID=replicate, time=time, group=group,
@@ -1570,12 +1582,13 @@ output$DEPlot <- renderPlot({
 ## Currently a data table bug as it should select only single arguments
   ### CHANGE IF DT R package is updated
   v <- as.numeric(s)[length(s)]
-  
+  grSel <- isolate(input$GroupsSel)
   if(!is.null(ExpData()$data) & !input$RunExample){
   if(is.null(indexFinal))
     indexFinal <<- rep(T,ncol(ExpData))
   group <- unlist(ExampleGroup)
- if(!is.null(isolate(input$GroupsSel))){ gr <- isolate(input$GroupsSel)}else{gr <-as.character( unique(group))}
+  
+ if(!is.null(grSel)){ gr <- grSel}else{gr <-as.character( unique(group))}
   print(gr)
   grIndex <- which(as.character(group)%in%gr)
   print(grIndex)
@@ -1583,10 +1596,10 @@ output$DEPlot <- renderPlot({
   time <- unlist(ExampleTime)[grIndex]
 }
   if(input$RunExample){
-    Example()
+   # Example()
     if(is.null(indexFinal))
       indexFinal <<- rep(T,ncol(ExampleExp))
-    if(!is.null(isolate(input$GroupsSel))){ gr <- isolate(input$GroupsSel)}else{gr <- as.character(unique(group))}
+    if(!is.null(grSel)){ gr <- grSel}else{gr <- as.character(unique(group))}
     print(gr)
     grIndex <- which(as.character(group)%in%gr)
     ExpData <-  ExampleExp[grIndex,indexFinal]
