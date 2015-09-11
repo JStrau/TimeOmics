@@ -111,7 +111,7 @@ shinyUI(pageWithSidebar(
                        hr(),
                        fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Don't use filter ratios"="Non","Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
                        hr(),
-                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filter for further analysis',FALSE)),
+                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filtered data for further analysis',FALSE)),
                        
                        fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
    
@@ -264,9 +264,8 @@ shinyUI(pageWithSidebar(
                  shiny::column(width=6,htmlOutput("BubbleGvisFC"),checkboxInput('logfc', 'Log fold change', TRUE))),
                 fluidRow(plotOutput("MCLUST")),
                 hr(),
-                fluidRow(shiny::column(width=6, textOutput('summarySoftFilter'))),
                 fluidRow(shiny::column(width=6, textOutput('summaryFilter'))),
-                fluidRow(shiny::column(width=6, textOutput('resetedFilter')))),
+                fluidRow(shiny::column(width=6, textOutput('resetFilter')))),
     
     ############### MODELLING #################
     

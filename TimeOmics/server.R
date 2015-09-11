@@ -16,7 +16,6 @@
 
 
 library(shiny)
-library(lattice)
 library(cluster)
 library(kohonen)
 library(Rmixmod)
@@ -59,11 +58,9 @@ m.slider<-NULL
 fc2 <- NULL
 numMis <- NULL
 df <- NULL
-resetValue <- 0
 changedPath.Exp <- F
 log <- TRUE
 investNoiseData1 <- investNoiseData2 <- NULL
-resetfilter <- 0
 
 plot <-grSelDE<- hcChanged <- kmChanged <-somChanged <-modelChanged <-ClRangeChanged1 <- ClRangeChanged2 <-matrixChanged<-pamChanged <-0
 
@@ -405,11 +402,7 @@ noiseDatanew <- reactive({
   }
   
   if((!is.null(ExpData) & !is.null(time) & !is.null(group) & !is.null(replicate)) | changedPath()|logfc!=log){
-    
-    if(input$ResetFilter!=resetfilter){
-      indexFinal <- rep(T,ncol(ExpData))
-      resetfilter <<- input$ResetFilter
-    }else{
+
       indexFilterFC <- indexFilterMiss <- indexFilterRatios <- rep(TRUE, ncol(ExpData))
 
     grp <- input$GroupsSel
@@ -460,19 +453,12 @@ noiseDatanew <- reactive({
       #### is filter by FC selected #####
       if(input$fcUsed){
         fcfilt <- input$fcs
-  
         indexFilterFC[investNoiseData2@foldChange<=fcfilt|investNoiseData1@foldChange<=fcfilt] <- FALSE
         summaFC<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a fold change threshold of',fcfilt,'.', sep=" ")
-        
       }
-      
-      
     }else{
-     
-      
       if(input$numMissingUsed){
         misdata <- input$miss
-        
         indexFilterMiss[investNoiseData1@propMissing>=misdata] <- FALSE
            summaMis<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a proportion of missing values threshold of',misdata,'.', sep=" ")
         
@@ -543,7 +529,7 @@ noiseDatanew <- reactive({
         
       }
       
-    }
+    
   print(summaMis)
   print(summaFC)
   print(summa)
@@ -564,7 +550,10 @@ noiseDatanew <- reactive({
  
 })
 
-
+#obd <- observe({
+#  input$ResetFilter
+#    indexFinal <<- rep(T,ncol(indexFilter))
+#})
 # 
 # noiseData <- reactive({
 #   
@@ -807,10 +796,10 @@ output$missing_slider <- renderUI({
 })
 
 #Action buttons are annoying
-output$resetedFilter <- renderText({
+output$resetFilter <- renderText({
   if(input$ResetFilter==0)
     return('')
-  
+  indexFinal <<- rep(T,length(indexFinal))
   lmm <<- NULL
   lmm.de <<- NULL
   return('Reset all filters.')
@@ -826,8 +815,9 @@ output$summaryFilter <- renderText({
     if(input$ApplyFilter){
       return(paste('Leaving ',sum(indexFinal),'molecules after filtering.'))
       }else{
+        indexFinal <<- rep(T,length(indexFinal))
         return(paste('No filtering applied for further analysis'))
-        indexFinal <<- rep(T,ncol(ExpData()$data))
+      
     }
 })
 
@@ -1404,8 +1394,11 @@ output$textAnaModel <- renderText({
       a <-  as.character(unlist(AnnotData()))
       annonames <- if(is.null(colnames(l))) a else colnames(l)
     }else{
-      
-      annonames <- rownames(l@predSpline)
+      if(class(l)=='lmmspline'){
+        annonames <- rownames(l@predSpline)
+      }else{
+        annonames <- rownames(l[[1]]@predSpline)
+      }
     }
     
     cl <- isolate(classif())
@@ -1426,12 +1419,18 @@ output$textAnaModel <- renderText({
   ##write data
   datasetClassifInput <- reactive({
     l <- LMMData()
+
     if(is.null(l)){
       l <- ExpData()$data
       a <- as.character(unlist(AnnotData()))
       annonames <- ifelse(is.null(colnames(l)),a,colnames(l))
     }else{
-      annonames <- rownames(l@predSpline)
+     
+      if(class(l)=='lmmspline'){
+        annonames <- rownames(l@predSpline)
+      }else{
+        annonames <- rownames(l[[1]]@predSpline)
+      }
     }
     data.frame(ID=annonames, Cluster=isolate(classif()))
   })
@@ -1608,6 +1607,9 @@ output$DEPlot <- renderPlot({
     replicate <- unlist(ExampleSample)[grIndex]
     group <- group[grIndex]
   }
+  type <- input$Radio_DEplot
+  if(length(unique(group))==1)
+    type='time'
   p <- plot(l,v,data=ExpData,type=input$Radio_DEplot,group = group,
             time = time,mean=input$DEPlotMean,smooth=input$DEPlotSmooth)+theme_bw()
   print(p)
