@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-#Dev branch 2
+
 library(shiny)
 library(cluster)
 library(kohonen)
@@ -42,9 +42,9 @@ ExpData <- reactive({
     ExampleExp <<- NULL
     lmm <<- NULL
     lmm.de <<-NULL
-    indexFinal <<- rep(TRUE,ncol(data))
     #Upload data
     data <<- read.csv(file=inFile$datapath, header=input$header, sep=input$sep)
+    indexFinal <<- rep(TRUE,ncol(data))
     path <<- inFile$datapath
     header <<-input$header
     sep <<-input$sep
@@ -211,13 +211,14 @@ output$Boxplot <- renderPlot({
     numberCol <- ncol(ExpData)
     if(is.null(GroupData()$data) & !input$RunExample){
       group <<- factor(1:numberRow)
+      index.g <- rep(T,numberRow)
     }else{
       if(input$RunExample)group<<- as.character(unlist(ExampleGroup))else group<<- as.character(GroupData()$data)
       g <- input$GroupsSel
       if(is.null(g))
         g <- unique(na.omit(group))[1]
       
-      index.g <- group%in%g
+      index.g <- group==g
       ExpData <- ExpData[index.g,]
       group <- group[index.g]
     }
@@ -304,6 +305,7 @@ output$Group_Checkbox <- renderUI({
 
 
 noiseDatanew <- reactive({
+ input$ApplyFilter
     logfc <- input$logfc
     summaMis <- summaFC <- summa <-''
     ExpData <- NULL
@@ -352,7 +354,7 @@ noiseDatanew <- reactive({
           investNoiseData1 <<-investNoise(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1])
         })
       }
-      index.na1 <- which(!is.na(investNoiseData1@RT)&!is.na(investNoiseData1@RI)&!is.infinite(investNoiseData1@RI)&!is.infinite(investNoiseData1@RT))
+      index.na1 <- (!is.na(investNoiseData1@RT)&!is.na(investNoiseData1@RI)&!is.infinite(investNoiseData1@RI)&!is.infinite(investNoiseData1@RT))
     
       if(length(grp)==2){
         if(is.null(investNoiseData2)){
@@ -361,7 +363,7 @@ noiseDatanew <- reactive({
             investNoiseData2 <<-investNoise(data = ExpData[gr2,],time =time[gr2] ,sampleID=replicate[gr2])
           })
           }
-        index.na2 <- which(!is.na(investNoiseData2@RT)&!is.na(investNoiseData2@RI)&!is.infinite(investNoiseData2@RI)&!is.infinite(investNoiseData2@RT))
+        index.na2 <- (!is.na(investNoiseData2@RT)&!is.na(investNoiseData2@RI)&!is.infinite(investNoiseData2@RI)&!is.infinite(investNoiseData2@RT))
       
         if(input$numMissingUsed){
           misdata <- input$miss
@@ -388,21 +390,22 @@ noiseDatanew <- reactive({
       }
     ##### FILTERING Based on Filter ratios #####
       if(input$FilterRad!="Non"){
-
+        allIndex <- indexFilterMiss&indexFilterFC&index.na1
         if(length(grp)==2){
+          allIndex <- indexFilterMiss&indexFilterFC&index.na1&index.na2
       ###### FILTERING based on model based clustering
           if(input$FilterRad=="model"){
-            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[index.na1&index.na2,]),nbCluster =2)@bestResult@partition
-            class2<- mixmodCluster(data.frame(cbind(investNoiseData2@RT,investNoiseData2@RI)[index.na1&index.na2,]),nbCluster =2)@bestResult@partition
+            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[allIndex,]),nbCluster =2)@bestResult@partition
+            class2<- mixmodCluster(data.frame(cbind(investNoiseData2@RT,investNoiseData2@RI)[allIndex,]),nbCluster =2)@bestResult@partition
       
             if(length(class1)!=0 & length(class2)!=0){
               cl1 <- unique(class1)
-              tcl1 <- ifelse(mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[2]],na.rm=T),1,2)
+              tcl1 <- ifelse(mean(investNoiseData1@RT[allIndex][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[2]],na.rm=T),1,2)
               cl2 <- unique(class2)
-              tcl2 <- ifelse(mean(investNoiseData2@RT[index.na2&index.na1][class2==cl2[1]],na.rm=T)<mean(investNoiseData2@RT[index.na2&index.na1][class2==cl2[2]],na.rm=T),1,2)
+              tcl2 <- ifelse(mean(investNoiseData2@RT[allIndex][class2==cl2[1]],na.rm=T)<mean(investNoiseData2@RT[index.na2&index.na1][class2==cl2[2]],na.rm=T),1,2)
               #take the missing data in account
-              indexFilterRatios[index.na2&index.na1] <- (class1==cl1[tcl1] | class2==cl2[tcl2])
-              indexFilterRatios[!(index.na2&index.na1)] <-FALSE
+              indexFilterRatios[allIndex] <- (class1==cl1[tcl1] | class2==cl2[tcl2])
+              indexFilterRatios[!allIndex] <-FALSE
               summa <- paste(sum(indexFilterRatios,na.rm=T),' molecules remaining \n after filtering with model based clustering. ', sep=" ")
             }
           }else{
@@ -417,12 +420,12 @@ noiseDatanew <- reactive({
         }else{
           ###### FILTERING based on model based clustering
           if(input$FilterRad=="model"){
-            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[index.na1,]),nbCluster =2)@bestResult@partition
+            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[allIndex,]),nbCluster =2)@bestResult@partition
             if(length(class1)!=0){
               cl1 <- unique(class1)
-              tcl1 <- ifelse(mean(investNoiseData1@RT[index.na1][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[index.na1][class1==cl1[2]],na.rm=T),1,2)
-              indexFilterRatios[!(index.na1)] <-FALSE
-              indexFilterRatios[index.na1] <- (class1==cl1[tcl1])
+              tcl1 <- ifelse(mean(investNoiseData1@RT[index.na1][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[allIndex][class1==cl1[2]],na.rm=T),1,2)
+              indexFilterRatios[!(allIndex)] <-FALSE
+              indexFilterRatios[allIndex] <- (class1==cl1[tcl1])
               }
 
             summa <- paste(sum(indexFilterRatios,na.rm=T),' molecules remaining \n after filtering with model based clustering. ', sep=" ")
@@ -476,8 +479,6 @@ output$BubbleGvisMissProp <- renderGvis({
 output$MCLUST <- renderPlot({
   df <- noiseDatanew()
   clustplot <- NULL
-  print(head(df))
-  print('MCLUST')
   if(!is.null(df)){
     #Show progress bar
    # withProgress(message = 'Clustering data', value = 0.1, {
@@ -592,7 +593,12 @@ output$missing_slider <- renderUI({
 output$summaryFilter <- renderText({
     lmm <<- NULL
     lmm.de <<- NULL
+    input$FilterRad
+    input$numMissingUsed
+    input$fcUsed
+    noiseDatanew()
     if(input$ApplyFilter){
+    
       return(paste('Leaving ',sum(indexFinal),'molecules after filtering.'))
       }else{
         indexFinal <<- rep(T,length(indexFinal))
@@ -610,17 +616,17 @@ LMMData <- reactive({
     return()
   if(!isolate(input$RunExample)){
     ExpData <- ExpData()$data
-    if(!is.null(ExpData) & (is.null(indexFinal)|!isolate(input$ApplyFilter))){
+    if(!is.null(ExpData) & (is.null(indexFinal)|!isolate(input$ApplyFilter)))
       indexFinal <- rep(T,ncol(ExpData))
-      ExpData <- ExpData[,indexFinal]
-    }
+    
+    ExpData <- ExpData[,indexFinal]
     time <- TimeData()$data
     group <- GroupData()$data
     replicate <- RepData()$data
     annotation <- AnnotData()
   }else{
     
-    if(is.null(indexFinal)|!input$ApplyFilter)
+    if(is.null(indexFinal)|isolate(!input$ApplyFilter))
       indexFinal <- rep(T,ncol(ExampleExp))
     ExpData <-ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
@@ -718,9 +724,9 @@ output$ModelTables =  DT::renderDataTable({
 
 output$ModelPlot <- renderPlot({
   l <- LMMData()
+
   if(is.null(l))
     return()
-  
   s <- input$ModelTables_rows_selected
   v <- NULL
   if (!length(s))
@@ -729,13 +735,17 @@ output$ModelPlot <- renderPlot({
   ### CHANGE IF DT R package is updated
   v <- as.numeric(s)[length(s)]
   # v <- which(l@DE$Molecule%in%input$DETable[1])
-  ExpData <- ExpData()$data[,indexFinal]
+  ExpData <- ExpData()$data
+  if(isolate(input$ApplyFilter))
+    ExpData <- ExpData()$data[,indexFinal]
   time <- TimeData()$data
   group <- GroupData()$data
   
   if(input$RunExample){
-    #Example()
-    ExpData <- ExampleExp[,indexFinal]
+    
+    ExpData <- ExampleExp
+    if(isolate(input$ApplyFilter))
+      ExpData <- ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     group <- unlist(ExampleGroup)
   }
@@ -1139,7 +1149,7 @@ DEoutput <- reactive({
 
   grSelDE <<-current_groupSel
   
-  if(!is.null(ExpData()$data) & !input$RunExample){
+  if(!is.null(ExpData()$data) & !isolate(input$RunExample)){
    # Example()
     group <- GroupData()$data
     if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
@@ -1150,7 +1160,7 @@ DEoutput <- reactive({
     group <- group[grIndex]
 
   }else{
-    if(is.null(indexFinal)|!input$ApplyFilter)
+    if(is.null(indexFinal)|!isolate(input$ApplyFilter))
       indexFinal <- rep(T,ncol(ExampleExp))
     group <- unlist(ExampleGroup)
     if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
@@ -1161,7 +1171,7 @@ DEoutput <- reactive({
     replicate <- unlist(ExampleSample)[grIndex]
     group <- group[grIndex]
   }
-
+  print(dim(ExpData))
   if((!is.null(ExpData)&!is.null(time)&!is.null(replicate)&!is.null(group)&is.null(lmm.de))| changedPath()){
     withProgress(message = 'Differential expression analysis in progress', value = 0.1, {
       lmm.de <<- lmmsDE(data=ExpData,sampleID=replicate, time=time, group=group,
@@ -1184,27 +1194,24 @@ output$DEPlot <- renderPlot({
   ### CHANGE IF DT R package is updated
   v <- as.numeric(s)[length(s)]
   grSel <- isolate(input$GroupsSel)
-  if(!is.null(ExpData()$data) & !input$RunExample){
-    if(is.null(indexFinal)|!input$ApplyFilter)
-      indexFinal <- rep(T,ncol(ExpData))
-    group <- unlist(ExampleGroup)
-  
-    if(!is.null(grSel)){ gr <- grSel}else{gr <-as.character( unique(group))}
+  if(!is.null(ExpData()$data) & !isolate(input$RunExample)){
+    if(is.null(indexFinal)|!isolate(input$ApplyFilter))
+      indexFinal <- rep(T,ncol(ExpData()$data))
+    group <- GroupData()$data
+    if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
     grIndex <- which(as.character(group)%in%gr)
-    ExpData <-  ExampleExp[grIndex,indexFinal]
-    time <- unlist(ExampleTime)[grIndex]
-  }
-  if(input$RunExample){
+    ExpData <- ExpData()$data[grIndex,indexFinal]
+    time <- TimeData()$data[grIndex]
+    group <- group[grIndex]
+  }else{
    # Example()
-    if(is.null(indexFinal)|!input$ApplyFilter)
+    if(is.null(indexFinal)|!isolate(input$ApplyFilter))
       indexFinal <- rep(T,ncol(ExampleExp))
     if(!is.null(grSel)){ gr <- grSel}else{gr <- as.character(unique(group))}
     print(gr)
     grIndex <- which(as.character(group)%in%gr)
     ExpData <-  ExampleExp[grIndex,indexFinal]
     time <- unlist(ExampleTime)[grIndex]
-    print(grIndex)
-    replicate <- unlist(ExampleSample)[grIndex]
     group <- group[grIndex]
   }
   type <- input$Radio_DEplot
