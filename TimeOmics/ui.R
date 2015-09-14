@@ -89,10 +89,10 @@ shinyUI(pageWithSidebar(
     
     conditionalPanel(condition = "input.Tabs == 'Filter'",
                      wellPanel(
-                       p(strong("Filtering:")),
+                       p(strong("Filter:")),
                        fluidRow(
                          shiny::column(width=4,offset = 1,checkboxInput(inputId = "numMissingUsed",
-                                                                  label = strong("Filter missing data"),
+                                                                  label = strong("Missing data"),
                                                                   value = FALSE)),
                          shiny::column(width=4, offset = 1, uiOutput("missing_slider"))),
                        
@@ -101,7 +101,7 @@ shinyUI(pageWithSidebar(
                         #                                          value = TRUE))),
                        fixedRow(
                          shiny::column(width = 4,offset=1,checkboxInput(inputId = "fcUsed",
-                                                                label = strong("Filter fold change"),
+                                                                label = strong("Fold change"),
                                                                 value = FALSE)),
                          shiny::column(width=4, offset = 1,
                                        uiOutput("fc_slider"))),
