@@ -89,7 +89,7 @@ shinyUI(pageWithSidebar(
     
     conditionalPanel(condition = "input.Tabs == 'Filter'",
                      wellPanel(
-                       p(strong("Soft filtering:")),
+                       p(strong("Filtering:")),
                        fluidRow(
                          shiny::column(width=4,offset = 1,checkboxInput(inputId = "numMissingUsed",
                                                                   label = strong("Filter missing data"),
@@ -111,9 +111,9 @@ shinyUI(pageWithSidebar(
                        hr(),
                        fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Don't use filter ratios"="Non","Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
                        hr(),
-                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filtered data for further analysis',FALSE)),
+                       fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filtered data for further analysis',FALSE)))),
                        
-                       fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
+                     #  fluidRow(actionButton('ResetFilter', 'Reset all filters')))),
    
 
     
@@ -160,7 +160,7 @@ shinyUI(pageWithSidebar(
     
     wellPanel(
       p(strong("Cluster visualisation")),
-      selectInput("variable", "Algorithm:",
+      selectInput("clusterAlgo", "Algorithm:",
                   list("Hierarchical Clustering" = "hc", 
                        "Diana" = "diana", 
                        "Kmeans" = "km",
@@ -264,8 +264,8 @@ shinyUI(pageWithSidebar(
                  shiny::column(width=6,htmlOutput("BubbleGvisFC"),checkboxInput('logfc', 'Log fold change', TRUE))),
                 fluidRow(plotOutput("MCLUST")),
                 hr(),
-                fluidRow(shiny::column(width=6, textOutput('summaryFilter'))),
-                fluidRow(shiny::column(width=6, textOutput('resetFilter')))),
+                fluidRow(shiny::column(width=6, textOutput('summaryFilter')))),
+               # fluidRow(shiny::column(width=6, textOutput('resetFilter')))),
     
     ############### MODELLING #################
     
@@ -295,7 +295,8 @@ shinyUI(pageWithSidebar(
     ############### Differential Expression #################
       
     tabPanel("Differential Expression",
-             h3(textOutput("DEInfoText")),
+             htmlOutput("textAnaModelDE"),
+             textOutput("DEInfoText"),
              fluidRow(shiny::column(width=6,radioButtons("Radio_DEplot", "Show plot:",c("All"='all',"Time fit" = "time","Group fit" = "group","Group and time interaction fit"="group*time"))),                      
                                     shiny::column(width=6, checkboxInput(inputId = "DEPlotMean",
                                                                          label = strong("Show mean"),

@@ -27,3 +27,30 @@ selDataTableOutput <- function (outputId)
     tags$script(src = "js/DTbinding.js"))), 
     div(id = outputId, class = "shiny-datatable-output selectable"))
 }
+
+
+
+
+#Upload panel gloabel variables
+path <- group.path <-rep.path <- sep <- header <-annot.path <-time.path <-current_group <- ""
+data <-group <- time <-annot <- annotation <- rep <-NULL
+changedPath.Exp <- F
+
+# Filtering global variables
+ymax <-ymin.fc <- ymin <- ymax.fc <-indexFinal <-f.slider<- m.slider<- NULL
+investNoiseData1 <- investNoiseData2 <- NULL
+log <- TRUE
+
+#Modelling global variables
+lmm <- NULL
+
+#Clustering global variables
+core <-T
+clusterAlgo <- ''
+enrich <-class <- classifi <-ce <- stab <- NULL
+num <-valiplot <-grSelDE<- hcChanged <- kmChanged <-somChanged <-modelChanged <-ClRangeChanged1 <- ClRangeChanged2 <-matrixChanged<-pamChanged <-0
+
+#Differential expression global variables
+data2 <- NULL
+lmm.de <- NULL
+ExampleExp <- NULL
