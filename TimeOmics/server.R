@@ -610,8 +610,8 @@ LMMData <- reactive({
     return()
   if(!isolate(input$RunExample)){
     ExpData <- ExpData()$data
-    if(is.null(indexFinal)& !is.null(ExpData)){
-      indexFinal <<- rep(T,ncol(ExpData))
+    if(!is.null(ExpData) & (is.null(indexFinal)|!isolate(input$ApplyFilter))){
+      indexFinal <- rep(T,ncol(ExpData))
       ExpData <- ExpData[,indexFinal]
     }
     time <- TimeData()$data
@@ -620,8 +620,8 @@ LMMData <- reactive({
     annotation <- AnnotData()
   }else{
     
-    if(is.null(indexFinal))
-      indexFinal <<- rep(T,ncol(ExampleExp))
+    if(is.null(indexFinal)|!input$ApplyFilter)
+      indexFinal <- rep(T,ncol(ExampleExp))
     ExpData <-ExampleExp[,indexFinal]
     time <- unlist(ExampleTime)
     replicate <- unlist(ExampleSample)
@@ -1133,8 +1133,8 @@ DEoutput <- reactive({
 
   if(is.null(ExpData()$data) & is.null(ExampleExp))
     return()
-  if(is.null(indexFinal) & !is.null(ExpData()$data))
-    indexFinal <<- rep(T,ncol(ExpData()$data))
+  if(!is.null(ExpData()$data) & (is.null(indexFinal)|!isolate(input$ApplyFilter)))
+    indexFinal <- rep(T,ncol(ExpData()$data))
   current_groupSel <- isolate(input$GroupsSel)
 
   grSelDE <<-current_groupSel
@@ -1149,12 +1149,9 @@ DEoutput <- reactive({
     time <- TimeData()$data[grIndex]
     group <- group[grIndex]
 
-  }
-
-  if(input$RunExample){
-   # Example()
-    if(is.null(indexFinal))
-      indexFinal <<- rep(T,ncol(ExpData))
+  }else{
+    if(is.null(indexFinal)|!input$ApplyFilter)
+      indexFinal <- rep(T,ncol(ExampleExp))
     group <- unlist(ExampleGroup)
     if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
     grIndex <- which(as.character(group)%in%gr)
@@ -1188,8 +1185,8 @@ output$DEPlot <- renderPlot({
   v <- as.numeric(s)[length(s)]
   grSel <- isolate(input$GroupsSel)
   if(!is.null(ExpData()$data) & !input$RunExample){
-    if(is.null(indexFinal))
-      indexFinal <<- rep(T,ncol(ExpData))
+    if(is.null(indexFinal)|!input$ApplyFilter)
+      indexFinal <- rep(T,ncol(ExpData))
     group <- unlist(ExampleGroup)
   
     if(!is.null(grSel)){ gr <- grSel}else{gr <-as.character( unique(group))}
@@ -1199,8 +1196,8 @@ output$DEPlot <- renderPlot({
   }
   if(input$RunExample){
    # Example()
-    if(is.null(indexFinal))
-      indexFinal <<- rep(T,ncol(ExampleExp))
+    if(is.null(indexFinal)|!input$ApplyFilter)
+      indexFinal <- rep(T,ncol(ExampleExp))
     if(!is.null(grSel)){ gr <- grSel}else{gr <- as.character(unique(group))}
     print(gr)
     grIndex <- which(as.character(group)%in%gr)
