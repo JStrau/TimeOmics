@@ -156,7 +156,9 @@ ObsGroupSel <- observe({
   lmm <<- NULL
   clusterAlgo <<- ''
   ClRangeChanged1 <<-0
+  ce <<-NULL
   investNoiseData1 <<- NULL
+  
   
 })
 
@@ -456,7 +458,6 @@ noiseDatanew <- reactive({
 ## Scatterplot of filter ratios colored by fold change values ##
 output$BubbleGvisFC <- renderGvis({
   df <- noiseDatanew()
-  print('bubble')
   bubble2 <- NULL
   if(!is.null(df)){
     bubble2 <- gvisBubbleChart(df, idvar="Name", xvar="RT", yvar="RI", sizevar="FC",options=list(title='Fold change',hAxis="{title: 'R_T'}",vAxis="{title: 'R_I'}",colorAxis="{colors: ['blue', 'orange']}",bubble="{stroke:'none',opacity:0.4,textStyle:{color: 'none'}}",sizeAxis="{minValue: 0,  maxSize: 5}"))
@@ -611,7 +612,6 @@ output$summaryFilter <- renderText({
   ################# Modelling functions ###########
   
 LMMData <- reactive({
-  print('lmmdata')
   if (is.null(lmm) & input$Modelling==0)
     return()
   if(!isolate(input$RunExample)){
@@ -641,7 +641,6 @@ LMMData <- reactive({
   if(!is.null(annotation)){
     colnames(ExpData) <- as.character(unlist(annotation))[indexFinal]
   }
-  print(indexFinal)
   if(!is.null(ExpData)&!is.null(time)&!is.null(replicate)&is.null(lmm)){
     withProgress(message = 'Modelling in progress', value = 0.1, {
       if(length(g)==1){
@@ -690,9 +689,9 @@ output$downloadModel <- downloadHandler(
   content = function(file) {
     l <- LMMData()
     if(class(l)=='lmmspline'){
-      write.csv(l@predSpline, file,row.names=F)
+      write.table(l@predSpline, file,row.names=F,sep=',')
     }else{
-      write.csv(rbind(l[[1]]@predSpline,l[[2]]@predSpline), file,row.names=F)
+      write.table(rbind(l[[1]]@predSpline,l[[2]]@predSpline), file,row.names=F,sep=',')
     }
   }
 )
@@ -800,7 +799,6 @@ output$textAnaModel <- renderText({
 #Cluster validation plot
   makeValiPlot <- function(list,range,correlation){
     cluster.sel <- c(1:5)[list]
-    #print(input$submitVali)
     range<-seq(range[1],range[2],1)
       lmms <- LMMData()
     if(is.null(lmms)){
@@ -1165,13 +1163,11 @@ DEoutput <- reactive({
     group <- unlist(ExampleGroup)
     if(!is.null(grSelDE)){ gr <- grSelDE}else{gr <- as.character(unique(group))}
     grIndex <- which(as.character(group)%in%gr)
-    print(grIndex)
     ExpData <-  ExampleExp[grIndex,indexFinal]
     time <- unlist(ExampleTime)[grIndex]
     replicate <- unlist(ExampleSample)[grIndex]
     group <- group[grIndex]
   }
-  print(dim(ExpData))
   if((!is.null(ExpData)&!is.null(time)&!is.null(replicate)&!is.null(group)&is.null(lmm.de))| changedPath()){
     withProgress(message = 'Differential expression analysis in progress', value = 0.1, {
       lmm.de <<- lmmsDE(data=ExpData,sampleID=replicate, time=time, group=group,
@@ -1208,7 +1204,6 @@ output$DEPlot <- renderPlot({
     if(is.null(indexFinal)|!isolate(input$ApplyFilter))
       indexFinal <- rep(T,ncol(ExampleExp))
     if(!is.null(grSel)){ gr <- grSel}else{gr <- as.character(unique(group))}
-    print(gr)
     grIndex <- which(as.character(group)%in%gr)
     ExpData <-  ExampleExp[grIndex,indexFinal]
     time <- unlist(ExampleTime)[grIndex]
@@ -1222,6 +1217,11 @@ output$DEPlot <- renderPlot({
   print(p)
 })
 
+obChangeDeInput <- observe({
+  input$DEtable
+  lmm.de <<-NULL
+  
+})
 
   
 output$downloadDEData <- downloadHandler(
@@ -1238,7 +1238,6 @@ output$pdfviewer <- renderText({
     return()
  # pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
   observeEvent(input$ShowUserGuide, {
-    print('event')
     pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
   })
   return(pdf)
