@@ -54,3 +54,40 @@ num <-valiplot <-grSelDE<- hcChanged <- kmChanged <-somChanged <-modelChanged <-
 data2 <- NULL
 lmm.de <- NULL
 ExampleExp <- NULL
+
+############ LOAD/INSTALL packages and scripts ###########
+
+
+
+
+
+getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
+  if(!suppressMessages(suppressWarnings(require(pkg, character.only = TRUE, quietly = TRUE)))) {
+    try(install.packages(pkg, repos = repos), silent = TRUE)
+  }
+  if(load) suppressPackageStartupMessages(library(pkg, character.only = TRUE, quietly = TRUE))
+  if(load & !silent) message("Loaded ", pkg)
+}
+
+##CHANGE DE plot if DT package selection="single" is updated
+#d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
+x <- c("shiny", "shinydashboard",'cluster','kohonen','Rmixmod','ggplot2','googleVis','DT','mclust','devtools') # etc.
+lapply(c(x), getPackage, silent = TRUE)
+
+if(!require(org.Hs.eg.db)){
+  source("http://bioconductor.org/biocLite.R")
+  biocLite("org.Hs.eg.db")
+}
+if (!require(lmms)){
+
+  devtools::install_bitbucket('Jasmin87/lmms')
+}
+library(lmms)
+if ( !require(googleCharts)){
+  devtools::install_github("jcheng5/googleCharts")
+}
+library(googleCharts)
+source('Scripts/Anoboxplot.R')
+source('Scripts/BHI.R')
+source('Scripts/clValid2.R')
+#source('Scripts/lmmSpline.R')

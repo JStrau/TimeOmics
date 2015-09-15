@@ -14,37 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-############ LOAD/INSTALL packages and scripts ###########
 
-getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
-  if(!suppressMessages(suppressWarnings(require(pkg, character.only = TRUE, quietly = TRUE)))) {
-    try(install.packages(pkg, repos = repos), silent = TRUE)
-  }
-  if(load) suppressPackageStartupMessages(library(pkg, character.only = TRUE, quietly = TRUE))
-  if(load & !silent) message("Loaded ", pkg)
-}
-
-##CHANGE DE plot if DT package selection="single" is updated
-#d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard",'cluster','lmms','kohonen','Rmixmod','ggplot2','googleVis','DT','mclust') # etc.
-lapply(c(x), getPackage, silent = TRUE)
-
-if(!require(org.Hs.eg.db)){
-  source("http://bioconductor.org/biocLite.R")
-  biocLite("org.Hs.eg.db")
-}
-
-if (!require(devtools)& !require(googleCharts)){
-  install.packages("devtools")
-devtools::install_github("jcheng5/googleCharts")
-}
-library(googleCharts)
-
-
-source('Scripts/Anoboxplot.R')
-source('Scripts/BHI.R')
-source('Scripts/clValid2.R')
-#source('Scripts/lmmSpline.R')
 
 
 #################
