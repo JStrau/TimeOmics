@@ -194,8 +194,6 @@ vClusters2 <- function (mat, clMethod, nClust, nclustMax, validation, Dist,
       clusterObj[[ind]] <- fanny(Dist, nc, ...)
       cluster <- clusterObj[[ind]]$clustering
     }, model = {
-      print(dim(mat))
-   
       clusterObj[[ind]] <- Mclust(as.data.frame(mat), G = nc, ...)
       cluster <- clusterObj[[ind]]$classification
     }, som = {
@@ -214,7 +212,6 @@ vClusters2 <- function (mat, clMethod, nClust, nclustMax, validation, Dist,
       cluster <- clusterObj[[ind]]$clust
     }, {
       cluster <- cutree(clusterObj, nc)
-      #print(cluster)
     })
     if (length(table(cluster)) != nc) {
       warning(paste(clMethod, "unable to find", nc, "clusters, returning NA for these validation measures"))
@@ -237,8 +234,6 @@ vClusters2 <- function (mat, clMethod, nClust, nclustMax, validation, Dist,
     if ("biological" %in% validation) {
       bhi.t <- NULL
       bhi.t <- BHI2(cluster, annotation = annotation, names = rownames(mat), category = GOcategory, dropEvidence = dropEvidence)
-      #print("vcl")
-      #print(bhi.t)
       bhi <- c(bhi.t$bhi,rep(NA,max(nClust,na.rm = TRUE)-length(bhi.t$bhi)))
       #@@@changed code bits
       measures[paste("BHI",1:length(bhi),sep="."), ind] <- bhi
