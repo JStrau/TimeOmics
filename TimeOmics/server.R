@@ -684,14 +684,15 @@ output$ModelTable<- renderText({
 
   
 output$downloadModel <- downloadHandler(
-  print('download'),
   filename = function() { paste('ModelledTrajectories',Sys.Date(),'.csv', sep='') },
   content = function(file) {
     l <- LMMData()
     if(class(l)=='lmmspline'){
-      write.table(l@predSpline, file,row.names=F,sep=',')
+      return(write.table(l@predSpline, file,row.names=T,sep=','))
     }else{
-      write.table(rbind(l[[1]]@predSpline,l[[2]]@predSpline), file,row.names=F,sep=',')
+      df <- rbind(l[[1]]@predSpline,l[[2]]@predSpline)
+      df$Group <- rep(isolate(input$GroupsSel),each=nrow(l[[2]]@predSpline))
+      return(write.table(df, file,row.names=T,sep=','))
     }
   }
 )
@@ -1048,15 +1049,18 @@ output$textAnaModel <- renderText({
       l <- ExpData()$data
       a <- as.character(unlist(AnnotData()))
       annonames <- ifelse(is.null(colnames(l)),a,colnames(l))
+      Group <- 1
     }else{
      
       if(class(l)=='lmmspline'){
         annonames <- rownames(l@predSpline)
+        Group <- input$GroupsSel
       }else{
         annonames <- rownames(l[[1]]@predSpline)
+        Group <- rep(input$GroupsSel,each=length(annonames))
       }
     }
-    data.frame(ID=annonames, Cluster=isolate(classif()))
+    data.frame(ID=annonames,Group=Group ,Cluster=isolate(classif()))
   })
   
   output$downloadClassifData <- downloadHandler(
