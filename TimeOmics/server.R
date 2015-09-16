@@ -26,10 +26,10 @@ library(googleVis)
 library(lmms)
 
 
-source('global.R')
+source('global.R',encoding = 'UTF-8')
 shinyServer(function(input, output,session) {
 
-
+  options(encoding="UTF-8")
 ########UPLOAD FUNCTIONS################
  
 ExpData <- reactive({
