@@ -57,10 +57,6 @@ ExampleExp <- NULL
 
 ############ LOAD/INSTALL packages and scripts ###########
 
-
-
-
-
 getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us.r-project.org") {
   if(!suppressMessages(suppressWarnings(require(pkg, character.only = TRUE, quietly = TRUE)))) {
     try(install.packages(pkg, repos = repos), silent = TRUE)
@@ -71,7 +67,7 @@ getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us
 
 ##CHANGE DE plot if DT package selection="single" is updated
 #d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard",'cluster','kohonen','Rmixmod','ggplot2','googleVis','DT','mclust','devtools') # etc.
+x <- c("shiny", "shinydashboard",'cluster','kohonen','snow','Rmixmod','ggplot2','googleVis','DT','mclust','devtools') # etc.
 lapply(c(x), getPackage, silent = TRUE)
 
 if(!require(org.Hs.eg.db)){

@@ -158,8 +158,6 @@ ObsGroupSel <- observe({
   ClRangeChanged1 <<-0
   ce <<-NULL
   investNoiseData1 <<- NULL
-  
-  
 })
 
 

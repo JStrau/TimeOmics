@@ -114,10 +114,11 @@ shinyUI(pageWithSidebar(
     conditionalPanel(condition = "input.Tabs == 'Cluster'",
     wellPanel(
      # HTML(tags$style(".span12 {background-color: black;}"))
+      radioButtons("Radio_Correlation", "Select distance matrix",c("Correlation" = "correlation","Euclidean"="euclidean")),
+      
       p(strong("Cluster validation")),
       #checkboxInput(inputId = "correlation", label = "Correlation", value = TRUE),
-      radioButtons("Radio_Correlation", "Select distance matrix",c("Correlation" = "correlation","Euclidean"="euclidean")),
-      p(strong("Select algoritms:")),
+        p(strong("Select algoritms:")),
       checkboxInput(inputId = "hierarchical", label = "Hierarchical Clustering", value = TRUE),
       checkboxInput(inputId = "kmeans", label = "Kmeans", value = TRUE),
       checkboxInput(inputId = "pam", label = "PAM", value = FALSE),
