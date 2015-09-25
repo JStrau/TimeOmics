@@ -624,7 +624,6 @@ LMMData <- reactive({
     replicate <- RepData()$data
     annotation <- AnnotData()
   }else{
-    
     if(is.null(indexFinal)|isolate(!input$ApplyFilter))
       indexFinal <- rep(T,ncol(ExampleExp))
     ExpData <-ExampleExp[,indexFinal]
@@ -741,7 +740,6 @@ output$ModelPlot <- renderPlot({
   group <- GroupData()$data
   
   if(input$RunExample){
-    
     ExpData <- ExampleExp
     if(isolate(input$ApplyFilter))
       ExpData <- ExampleExp[,indexFinal]
@@ -897,7 +895,7 @@ output$textAnaModel <- renderText({
       rownames(data.lmm) <- 1:nrow(data.lmm)
     
     time <- TimeData()$data
-    if(is.null(time)){
+    if(is.null(time) & isolate(input$RunExample)){
      # Example()
       time <- unlist(ExampleTime)
     }
