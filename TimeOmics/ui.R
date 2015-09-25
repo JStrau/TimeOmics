@@ -35,19 +35,23 @@ shinyUI(pageWithSidebar(
       p(strong("Upload")),
       fileInput('ExpData', 'Expression matrix',
                 accept=c('text/csv', 'text/comma-separated-values,text/plain', '.csv'),multiple=FALSE),
-      tags$hr(),
+      helpText("Note: Please have the samples as row and the molecules as column."),
+     
       checkboxInput('header', 'Header', TRUE),
       radioButtons('sep', 'Separator:',
                    c("Comma"=',',
                      "Semicolon"=';',
                      "Tab"='\t')),
-      helpText("Note: Please have the samples as row and the molecules as column."),
-      fileInput("TimeData", "Time vector", multiple=FALSE),
-      fileInput("ReplicateData", "Sample ID vector", multiple=FALSE),
+     
+      tags$hr(),
       helpText("Note: The time, the sample ID and the group vector needs to have the same length as the expression matrix row."),
-      fileInput("GroupData", "Group vector", multiple=FALSE),
+       fileInput("TimeData", "Time vector", multiple=FALSE),
+      tags$hr(),
+      fileInput("ReplicateData", "Sample ID vector", multiple=FALSE),
+      tags$hr(),
+       fileInput("GroupData", "Group vector", multiple=FALSE),
       helpText("Note: If your samples belong to one group upload a vector of '1' with the same length as the  expression matrix row."),
-      
+      tags$hr(),
       fileInput("AnnotData", "Molecule annotation", multiple=FALSE),
       helpText("Note: In order to perform the GO term enrichment analysis please upload the Entrez Gene identifier matching the expression matrix columns.")
       )
@@ -61,24 +65,25 @@ shinyUI(pageWithSidebar(
                      wellPanel(
                        p(strong("Filter:")),
                        fluidRow(
-                         shiny::column(width=4,offset = 1,checkboxInput(inputId = "numMissingUsed",
+                         shiny::column(width=4,offset = 1,tags$div(title="Select `Missing data' to remove molecules with higher \n proportion of missing values as selected by the slider.",checkboxInput(inputId = "numMissingUsed",
                                                                   label = strong("Missing data"),
-                                                                  value = FALSE)),
+                                                                  value = FALSE))),
                          shiny::column(width=4, offset = 1, uiOutput("missing_slider"))),
                        
                         # shiny::column(6,offset = 1,checkboxInput(inputId = "modelColor",
                         #                                          label = strong("Color by missing values"),
                         #                                          value = TRUE))),
                        fixedRow(
-                         shiny::column(width = 4,offset=1,checkboxInput(inputId = "fcUsed",
+                         shiny::column(width = 4,offset=1,tags$div(title="Select `Fold change' to remove molecules with \n lower fold changes as selected by the slider.",checkboxInput(inputId = "fcUsed",
                                                                 label = strong("Fold change"),
-                                                                value = FALSE)),
+                                                                value = FALSE))),
                          shiny::column(width=4, offset = 1,
                                        uiOutput("fc_slider"))),
-                       helpText("Note: Filtering of molecules based on the proportion missing values and fold change is only applied if the boxes are selected."),
+                       helpText("Note: Filtering of molecules based on the proportion missing values and fold change is only applied if the boxes are selected.")
                        #actionButton('ApplyFilterSoft', 'Apply'),
-                       br(),
-                       hr(),
+                     ),
+                     
+                     wellPanel(
                        fluidRow(radioButtons("FilterRad", "Filter on filter ratios using:",c("Don't use filter ratios"="Non","Model based clustering" = "model","Fixed R_T and R_I" = "fixed"))),
                        hr(),
                        fluidRow(textInput("RT_Filter",'R_T',0.9),textInput("RI_Filter","R_I",0.3), checkboxInput('ApplyFilter', 'Use filtered data for further analysis',FALSE)))),
@@ -96,8 +101,9 @@ shinyUI(pageWithSidebar(
                                    list("Cubic" = "cubic",
                                         "P-spline" = "p-spline", 
                                         "Cubic p-spline" = "cubic p-spline")),
-                       actionButton("Modelling","Model"),
-                       p(strong(" ")),
+                       actionButton("Modelling","Model")),
+                      
+                     wellPanel(
                        p(strong("Model info:")),
                        htmlOutput("textModels"),
                        p(strong(" ")),
@@ -114,10 +120,11 @@ shinyUI(pageWithSidebar(
     conditionalPanel(condition = "input.Tabs == 'Cluster'",
     wellPanel(
      # HTML(tags$style(".span12 {background-color: black;}"))
-      radioButtons("Radio_Correlation", "Select distance matrix",c("Correlation" = "correlation","Euclidean"="euclidean")),
-      
-      p(strong("Cluster validation")),
+      radioButtons("Radio_Correlation", "Select distance matrix",c("Correlation" = "correlation","Euclidean"="euclidean"))
+      ),
       #checkboxInput(inputId = "correlation", label = "Correlation", value = TRUE),
+      wellPanel(
+        p(strong("Cluster validation")),
         p(strong("Select algoritms:")),
       checkboxInput(inputId = "hierarchical", label = "Hierarchical Clustering", value = TRUE),
       checkboxInput(inputId = "kmeans", label = "Kmeans", value = TRUE),
@@ -191,7 +198,8 @@ shinyUI(pageWithSidebar(
                      wellPanel(
                        p(strong("Example")),
                        helpText("Please click on 'Run Example' to upload multi sample example data."),
-                       checkboxInput("RunExample","Run example",value = F),
+                       checkboxInput("RunExample","Run example",value = F)),
+                     wellPanel(
                        p(strong("User guide")),
                        helpText("Note: If your browser cannot display the pdf within the shiny application the file is also available in the www folder."),
                        actionButton("ShowUserGuide","User guide")
@@ -232,7 +240,7 @@ shinyUI(pageWithSidebar(
     tabPanel("Filter", uiOutput("filter_group"),
                fluidRow(
                  shiny::column(width=6,htmlOutput("BubbleGvisMissProp")),
-                 shiny::column(width=6,htmlOutput("BubbleGvisFC"),checkboxInput('logfc', 'Log fold change', TRUE))),
+                 shiny::column(width=6,htmlOutput("BubbleGvisFC"),tags$div(title="Fold change is measured as  the maximum \n average difference between any two time points. ",checkboxInput('logfc', 'Log fold change', TRUE)))),
                 fluidRow(plotOutput("MCLUST")),
                 hr(),
                 fluidRow(shiny::column(width=6, textOutput('summaryFilter')))),
