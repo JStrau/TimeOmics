@@ -146,6 +146,10 @@ Example <- observe({
     ExampleSample <<- ExampleSample
     indexFinal <<- rep(TRUE,ncol(ExampleExp))
   }
+  group <<- NULL
+  rep <<- NULL
+  annot <<- NULL
+  time <<- NULL
   lmm.de <<- NULL
   lmm <<- NULL
 })
@@ -306,11 +310,14 @@ output$Group_Checkbox <- renderUI({
 
 noiseDatanew <- reactive({
  input$ApplyFilter
+ if(is.null(ExpData()$data) & !input$RunExample)
+   return()
     logfc <- input$logfc
     summaMis <- summaFC <- summa <-''
     ExpData <- NULL
     grp <- input$GroupsSel
-
+    
+    
     if(!is.null(ExpData()$data) & !input$RunExample){
       group <- GroupData()$data
       replicate <- RepData()$data
