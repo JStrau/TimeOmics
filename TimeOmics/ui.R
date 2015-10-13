@@ -22,7 +22,7 @@
 shinyUI(pageWithSidebar(
   # Application title
 #tags$head(tags$style("body  {background-color: orange;}")
-  titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Picture5.png" alt="TimeOmics" height="60" width="120" align="left"></td>'))),
+  titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Logo.png" alt="TimeOmics" height="60" width="120" align="left"></td>'))),
              #,list(HTML(' <img src="Logo3.png" alt="TimeOmics" height="60" width="120" align="right"></td>'))),
   # Sidebar with controls to select the variable to plot against mpg
   # and to specify whether outliers should be included
