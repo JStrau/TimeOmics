@@ -29,7 +29,7 @@ library(lmms)
 source('global.R',encoding = 'UTF-8')
 shinyServer(function(input, output,session) {
 
-  options(encoding="UTF-8")
+  options(shiny.maxRequestSize=30*1024^2,encoding="UTF-8") 
 ########UPLOAD FUNCTIONS################
  
 ExpData <- reactive({
@@ -498,11 +498,11 @@ output$MCLUST <- renderPlot({
         keep <- rep('yes',length(class1))
         keep[class1==cl[tcl]] <- 'no'
         df$keep <- keep
-        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,type="n",xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
+        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
       }else{
         keep <- rep('yes',length(index.na))
         df$keep <- keep
-        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,type="n",xlab="R_T",ylab="R_I",main="Classification returned errors.")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
+        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification returned errors.")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
         
       }
   #  })
