@@ -291,7 +291,7 @@ shinyUI(pageWithSidebar(
              fluidRow( h3('TimeOmics workflows')),
              fluidRow(img(src="Workflow.png",width=600,height=200)),
              conditionalPanel(condition = "input.ShowUserGuide != 0",
-             tags$iframe(src="TimeOmics_userguide.pdf", width="900", height="600"))),
+             tags$iframe(src="UserGuide.pdf", width="900", height="600"))),
              #htmlOutput('pdfviewer')
      
     

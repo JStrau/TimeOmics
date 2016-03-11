@@ -173,6 +173,7 @@ ObsGroupSel <- observe({
     
     if(input$RunExample){
       #Example()
+      print(getwd())
       ExpData <- ExampleExp
     }
     if(!is.null(ExpData)){
@@ -1027,20 +1028,22 @@ output$textAnaModel <- renderText({
       if(class(l)=='lmmspline'){
         annonames <- rownames(l@predSpline)
       }else{
-        annonames <- rownames(l[[1]]@predSpline)
+        annonames <- c(rownames(l[[1]]@predSpline),rownames(l[[2]]@predSpline))
       }
     }
     
     cl <- isolate(classif())
     if(is.null(cl))
       return()
-    
+    if(length(annonames)!=length(cl)){
+      warning("Annotation names not the same length as classification")
+    }else{
     if(length(class)!=length(cl)| !all(cl==class)){
       class <<- cl
       withProgress(message = 'GO enrichment analysis in progress', value = 0.1, {
       enrich <<-biological.homogenity(cl,ident=annonames,identifier="IPI",ontology=input$ontology,db=input$organism)     
       })
-    }
+    }}
     enrich
     
   })
@@ -1242,11 +1245,11 @@ output$downloadDEData <- downloadHandler(
 
 ###### PDF VIEWER ########
 output$pdfviewer <- renderText({
+ 
   if(input$ShowUserGuide==0)
     return()
- # pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
   observeEvent(input$ShowUserGuide, {
-    pdf <- '<iframe style="height:600px; width:100%" src="TimeOmics_userguide.pdf",target="_self"></iframe>'
+    pdf <- '<iframe style="height:600px; width:100%" src="UserGuide.pdf",target="_self"></iframe>'
   })
   return(pdf)
   })

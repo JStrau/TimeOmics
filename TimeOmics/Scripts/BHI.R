@@ -36,7 +36,7 @@ biological.homogenity <- function(cluster,ident,ontology="all",identifier="Gene 
   
   identifiers <- c("Gene symbol","IPI")
   if(!identifier %in% identifiers)
-    stop(paste("Please select on of the following identifiers:", identifiers,collapse = " "))
+    stop(paste("Please select one of the following identifiers:", identifiers,collapse = " "))
   
   ont.selection  <-c("BP","CC","MF","all")
 
@@ -95,7 +95,7 @@ biological.homogenity <- function(cluster,ident,ontology="all",identifier="Gene 
   selectedAnnots <- allAnnots[intersect(which(allAnnots$ident_id%in%ident),ont.index),]
   
   if(dim(selectedAnnots)[1]==0)
-    stop("Identifier do not match. Please check identifiers")
+    stop("Identifiers do not match. Please check identifiers")
 
   array <- array(list(),dim=length(unique(cluster)))
   
