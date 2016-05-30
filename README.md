@@ -19,9 +19,9 @@ Follow the subsequent steps to install R (>= 3.2), RStudio (>= 0.99) and TimeOmi
 3. Once you have R and RStudio running, download TimeOmics from GitHub [here](https://github.com/JStrau/TimeOmics)
 4. You will also need to install the R package shiny in order to run TimeOmics. Open RStudio and type into the RStudio console:
 
-
-    install.packages('shiny')
-
+~~~~
+install.packages('shiny')
+~~~~
 
 
 ### Run TimeOmics ###
@@ -36,9 +36,13 @@ Run TimeOmics by typing the following commands in the console:
 ### Citing TimeOmics ###
 
 The statistical methods can be cited as:
+
+
 Straube J, Gorse A-D, Huang BE and Lê Cao K-A (2015)
+
 A linear mixed model spline framework for analyzing time course `omics' data.
-PLoS ONE 10(8): e0134540. doi: 10.1371/journal.pone.0134540
+
+PLoS ONE 10(8): e0134540. [doi: 10.1371/journal.pone.0134540](http://dx.doi.org/10.1371/journal.pone.0134540)
 
 
 ### Who do I talk to? ###
