@@ -1,4 +1,5 @@
-# TimeOmics in a Nutshell#
+# TimeOmics in a Nutshell #
+
 TimeOmics is a user-friendly application to filter, visualize and analyse high dimensional time course `omics' data. TimeOmics enables a variety of functions, for molecule expression experiments measured on multiple biological replicates over multiple time points to enable: 
 
 1.  Filtering of not expressed or noisy molecules.
@@ -6,7 +7,7 @@ TimeOmics is a user-friendly application to filter, visualize and analyse high d
 3.  Clustering of modelled expression profiles.
 4.  Analysing differential expression over time (between groups and time and group interaction, if two groups are available).
 
-Examples can be found in the [user guide](https://github.com/JStrau/TimeOmics/tree/master/TimeOmics/www/UserGuide.pdf)/.
+Examples can be found in the [user guide](https://github.com/JStrau/TimeOmics/tree/master/TimeOmics/www/UserGuide.pdf).
 
 ## Quick start ##
 ### What do I need to run TimeOmics? ###
@@ -18,7 +19,7 @@ Follow the subsequent steps to install R (>= 3.2), RStudio (>= 0.99) and TimeOmi
 3. Once you have R and RStudio running, download TimeOmics from GitHub [here](https://github.com/JStrau/TimeOmics)
 4. You will also need to install the R package shiny in order to run TimeOmics. Open RStudio and type into the RStudio console:
 
-    
+
     install.packages('shiny')
 
 
@@ -28,6 +29,7 @@ Run TimeOmics by typing the following commands in the console:
 
     library(shiny)
     runApp('C:/filepath/to/TimeOmics')
+    
 
 **Note:** The first time you launch TimeOmics may take time as many package dependencies need to be  automatically installed. 
 
