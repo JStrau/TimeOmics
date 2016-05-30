@@ -14,16 +14,18 @@ TimeOmics version 1.0 functionality was tested on R version 3.2 and RStudio vers
 Follow the subsequent steps to install R (>= 3.2), RStudio (>= 0.99) and TimeOmics:
 
 1. Download and install the latest version of R for your machine from [here](https://cran.r-project.org/bin/windows/base/).
-2. Download and install the latest version of \textbf{RStudio Desktop} for your machine from [here](https://www.rstudio.com/products/rstudio/#Desktop).
+2. Download and install the latest version of  **RStudio Desktop** for your machine from [here](https://www.rstudio.com/products/rstudio/#Desktop).
 3. Once you have R and RStudio running, download TimeOmics from GitHub [here](https://github.com/JStrau/TimeOmics)
-4. You will also need to install the R package \texttt{shiny} in order to run TimeOmics. Open RStudio and type into the RStudio console:
+4. You will also need to install the R package shiny in order to run TimeOmics. Open RStudio and type into the RStudio console:
 
+    
     install.packages('shiny')
 
 
 
 ### Run TimeOmics ###
 Run TimeOmics by typing the following commands in the console:
+
     library(shiny)
     runApp('C:/filepath/to/TimeOmics')
 
