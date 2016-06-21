@@ -1,0 +1,6 @@
+Version 1.1
+
+Minor:
+-Enhancement of the filter rations fold change and proportion of missing data plot
+-Enhancement of the cluster plot
+-Change of the logo in the application and the user guide

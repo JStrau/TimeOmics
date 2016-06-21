@@ -22,7 +22,7 @@
 shinyUI(pageWithSidebar(
   # Application title
 #tags$head(tags$style("body  {background-color: orange;}")
-  titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Logo.png" alt="TimeOmics" height="60" width="120" align="left"></td>'))),
+  titlePanel(windowTitle='TimeOmics',list(HTML(' <img src="Logo2.png" alt="TimeOmics" height="60" width="120" align="middle" hspace="20"></td>'))),
              #,list(HTML(' <img src="Logo3.png" alt="TimeOmics" height="60" width="120" align="right"></td>'))),
   # Sidebar with controls to select the variable to plot against mpg
   # and to specify whether outliers should be included
@@ -140,7 +140,7 @@ shinyUI(pageWithSidebar(
       p(strong("Cluster visualisation")),
       selectInput("clusterAlgo", "Algorithm:",
                   list("Hierarchical Clustering" = "hc", 
-                       "Diana" = "diana", 
+                      # "Diana" = "diana", 
                        "Kmeans" = "km",
                        'Model based clustering'='model',
                        'Self-Organizing maps'='som',
@@ -198,7 +198,7 @@ shinyUI(pageWithSidebar(
                      wellPanel(
                        p(strong("Example")),
                        helpText("Please click on 'Run Example' to upload multi sample example data."),
-                       checkboxInput("RunExample","Run example",value = F)),
+                       checkboxInput("RunExample","Run example",value = T)),
                      wellPanel(
                        p(strong("User guide")),
                        helpText("Note: If your browser cannot display the pdf within the shiny application the file is also available in the www folder."),
@@ -209,7 +209,7 @@ shinyUI(pageWithSidebar(
 
     ,#end tabsetPanel
     HTML('<footer>
-         <td valign="top" >  <img src="index.gif" alt="QFAB" height="60" width="60" align="center"><img src="crc.gif" alt="CRC" align="center" height="50" width="148" style="display:inline;"></td></footer>')
+         <td valign="top" >  <img src="index.gif" alt="QFAB" height="60" width="60" align="center"></td></footer>')
     ),
   
 
@@ -239,8 +239,10 @@ shinyUI(pageWithSidebar(
     
     tabPanel("Filter", uiOutput("filter_group"),
                fluidRow(
-                 shiny::column(width=6,htmlOutput("BubbleGvisMissProp")),
-                 shiny::column(width=6,htmlOutput("BubbleGvisFC"),tags$div(title="Fold change is measured as  the maximum \n average difference between any two time points. ",checkboxInput('logfc', 'Log fold change', TRUE)))),
+                 shiny::column(width=6, plotlyOutput("BubbleGvisMissProp")),
+                 shiny::column(width=6, plotlyOutput("BubbleGvisFC"),checkboxInput('logfc', 'Log fold change', TRUE))),
+             
+              #   shiny::column(width=6, plotlyOutput("BubbleGvisFC"),tags$div(title="Fold change is measured as  the maximum \n average difference between any two time points. ",checkboxInput('logfc', 'Log fold change', TRUE)))),
                 fluidRow(plotOutput("MCLUST")),
                 hr(),
                 fluidRow(shiny::column(width=6, textOutput('summaryFilter')))),
@@ -268,7 +270,7 @@ shinyUI(pageWithSidebar(
       plotOutput("clusterValidation"),
       h3(textOutput("caption")),
       checkboxInput(inputId='colorGroup', label = strong("Color by group"),value= TRUE),
-      plotOutput("clusterPlot"),
+      plotlyOutput("clusterPlot"),
       DT::dataTableOutput('GOEnrichment')),
       
     ############### Differential Expression #################

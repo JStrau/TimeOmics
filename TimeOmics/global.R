@@ -67,7 +67,7 @@ getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us
 
 ##CHANGE DE plot if DT package selection="single" is updated
 #d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard",'cluster','kohonen','snow','Rmixmod','ggplot2','googleVis','DT','mclust','devtools') # etc.
+x <- c("shiny", "shinydashboard",'cluster','kohonen','snow','Rmixmod','ggplot2','plotly','DT','mclust','devtools') # etc.
 lapply(c(x), getPackage, silent = TRUE)
 
 if(!require(org.Hs.eg.db)){
@@ -76,13 +76,11 @@ if(!require(org.Hs.eg.db)){
 }
 if (!require(lmms)){
 
-  devtools::install_bitbucket('Jasmin87/lmms')
+devtools::install_bitbucket('Jasmin87/lmms')
 }
 library(lmms)
-if ( !require(googleCharts)){
-  devtools::install_github("jcheng5/googleCharts")
-}
-library(googleCharts)
+
+#library(googleCharts)
 source('Scripts/Anoboxplot.R')
 source('Scripts/BHI.R')
 source('Scripts/clValid2.R')

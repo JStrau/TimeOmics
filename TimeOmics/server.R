@@ -14,7 +14,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
-#test webhook
 
 library(shiny)
 library(cluster)
@@ -22,14 +21,12 @@ library(kohonen)
 library(Rmixmod)
 library(mclust)
 library(ggplot2)
-library(googleVis)
+library(plotly)
 library(lmms)
-#Test push into github from bitbucket
 
 source('global.R',encoding = 'UTF-8')
 shinyServer(function(input, output,session) {
-
-  options(shiny.maxRequestSize=30*1024^2,encoding="UTF-8") 
+options(shiny.maxRequestSize=30*1024^2,encoding="UTF-8") 
 ########UPLOAD FUNCTIONS################
  
 ExpData <- reactive({
@@ -243,21 +240,6 @@ output$Boxplot <- renderPlot({
   }
 })
 
-#output$BoxplotGvis <- renderGvis({
-  
-  # generate an rnorm distribution and plot it
-  
-#  ExpData <- ExpData()$data
-#  if(!is.null(ExpData)){
-#    numberRow <- dim(ExpData)[1]
-    #matri <- matrix(ExpData,nrow=numberRow[1])
- 
-#    b <- boxplot(t(ExpData),main="Boxplot of the samples",col=rainbow(numberRow))$stats
-#    df.b <- data.frame(low=b[1,],open=b[2,],time=c(1:ncol(b)),close=b[4,],high=b[5,])
-#    g <- gvisCandlestickChart(df.b, xvar="time", low="low", open="open", close="close",high="high",options=list(legend='none'))
-##    g
-#  }
-#})
 
 
 
@@ -319,7 +301,6 @@ noiseDatanew <- reactive({
     ExpData <- NULL
     grp <- input$GroupsSel
     
-    
     if(!is.null(ExpData()$data) & !input$RunExample){
       group <- GroupData()$data
       replicate <- RepData()$data
@@ -363,7 +344,7 @@ noiseDatanew <- reactive({
           investNoiseData1 <<-investNoise(data = ExpData[gr1,],time =time[gr1] ,sampleID=replicate[gr1])
         })
       }
-      index.na1 <- (!is.na(investNoiseData1@RT)&!is.na(investNoiseData1@RI)&!is.infinite(investNoiseData1@RI)&!is.infinite(investNoiseData1@RT))
+      index.na1 <- (!is.na(investNoiseData1@Results$RT)&!is.na(investNoiseData1@Results$RI)&!is.infinite(investNoiseData1@Results$RI)&!is.infinite(investNoiseData1@Results$RT))
     
       if(length(grp)==2){
         if(is.null(investNoiseData2)){
@@ -372,28 +353,28 @@ noiseDatanew <- reactive({
             investNoiseData2 <<-investNoise(data = ExpData[gr2,],time =time[gr2] ,sampleID=replicate[gr2])
           })
           }
-        index.na2 <- (!is.na(investNoiseData2@RT)&!is.na(investNoiseData2@RI)&!is.infinite(investNoiseData2@RI)&!is.infinite(investNoiseData2@RT))
+        index.na2 <- (!is.na(investNoiseData2@Results$RT)&!is.na(investNoiseData2@Results$RI)&!is.infinite(investNoiseData2@Results$RI)&!is.infinite(investNoiseData2@Results$RT))
       
         if(input$numMissingUsed){
           misdata <- input$miss
-          indexFilterMiss[investNoiseData2@propMissing>=misdata|investNoiseData1@propMissing>=misdata] <- FALSE
+          indexFilterMiss[investNoiseData2@Results$propMissing>=misdata|investNoiseData1@Results$propMissing>=misdata] <- FALSE
           summaMis<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a proportion of missing values threshold of',misdata,'.', sep=" ")
         }
       #### is filter by FC selected #####
         if(input$fcUsed){
           fcfilt <- input$fcs
-          indexFilterFC[investNoiseData2@foldChange<=fcfilt|investNoiseData1@foldChange<=fcfilt] <- FALSE
+          indexFilterFC[investNoiseData2@Results$foldChange<=fcfilt|investNoiseData1@Results$foldChange<=fcfilt] <- FALSE
           summaFC<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a fold change threshold of',fcfilt,'.', sep=" ")
         }
       }else{
         if(input$numMissingUsed){
           misdata <- input$miss
-          indexFilterMiss[investNoiseData1@propMissing>=misdata] <- FALSE
+          indexFilterMiss[investNoiseData1@Results$propMissing>=misdata] <- FALSE
           summaMis<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a proportion of missing values threshold of',misdata,'.', sep=" ")
         }
         if(input$fcUsed){
           fcfilt <- input$fcs
-          indexFilterFC[investNoiseData1@foldChange<=fcfilt] <- FALSE
+          indexFilterFC[investNoiseData1@Results$foldChange<=fcfilt] <- FALSE
           summaFC<- paste(sum(indexFilterFC,na.rm=T),' molecules remaining \n after filtering using a fold change threshold of',fcfilt,'.', sep=" ")
         }
       }
@@ -404,14 +385,14 @@ noiseDatanew <- reactive({
           allIndex <- indexFilterMiss&indexFilterFC&index.na1&index.na2
       ###### FILTERING based on model based clustering
           if(input$FilterRad=="model"){
-            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[allIndex,]),nbCluster =2)@bestResult@partition
-            class2<- mixmodCluster(data.frame(cbind(investNoiseData2@RT,investNoiseData2@RI)[allIndex,]),nbCluster =2)@bestResult@partition
+            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@Results$RT,investNoiseData1@Results$RI)[allIndex,]),nbCluster =2)@bestResult@partition
+            class2<- mixmodCluster(data.frame(cbind(investNoiseData2@Results$RT,investNoiseData2@Results$RI)[allIndex,]),nbCluster =2)@bestResult@partition
       
             if(length(class1)!=0 & length(class2)!=0){
               cl1 <- unique(class1)
-              tcl1 <- ifelse(mean(investNoiseData1@RT[allIndex][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[index.na1&index.na2][class1==cl1[2]],na.rm=T),1,2)
+              tcl1 <- ifelse(mean(investNoiseData1@Results$RT[allIndex][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@Results$RT[index.na1&index.na2][class1==cl1[2]],na.rm=T),1,2)
               cl2 <- unique(class2)
-              tcl2 <- ifelse(mean(investNoiseData2@RT[allIndex][class2==cl2[1]],na.rm=T)<mean(investNoiseData2@RT[index.na2&index.na1][class2==cl2[2]],na.rm=T),1,2)
+              tcl2 <- ifelse(mean(investNoiseData2@Results$RT[allIndex][class2==cl2[1]],na.rm=T)<mean(investNoiseData2@Results$RT[index.na2&index.na1][class2==cl2[2]],na.rm=T),1,2)
               #take the missing data in account
               indexFilterRatios[allIndex] <- (class1==cl1[tcl1] | class2==cl2[tcl2])
               indexFilterRatios[!allIndex] <-FALSE
@@ -421,18 +402,18 @@ noiseDatanew <- reactive({
             ####### FILTERING BASED ON fixed RT and RI
             RT <- as.numeric(input$RT_Filter)
             RI <- as.numeric(input$RI_Filter)
-            index1 <- c(investNoiseData1@RI<=RI & investNoiseData1@RT<=RT )
-            index2 <- c(investNoiseData2@RI<=RI & investNoiseData2@RT<=RT )
+            index1 <- c(investNoiseData1@Results$RI<=RI & investNoiseData1@Results$RT<=RT )
+            index2 <- c(investNoiseData2@Results$RI<=RI & investNoiseData2@Results$RT<=RT )
             indexFilterRatios <- (index1 | index2) 
             summa <- paste(sum(indexFilterRatios,na.rm=T),' molecules remaining \n after filtering with fixed RT=',RT,'and RI=',RI,'.', sep=" ")
           }
         }else{
           ###### FILTERING based on model based clustering
           if(input$FilterRad=="model"){
-            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@RT,investNoiseData1@RI)[allIndex,]),nbCluster =2)@bestResult@partition
+            class1<- mixmodCluster(data.frame(cbind(investNoiseData1@Results$RT,investNoiseData1@Results$RI)[allIndex,]),nbCluster =2)@bestResult@partition
             if(length(class1)!=0){
               cl1 <- unique(class1)
-              tcl1 <- ifelse(mean(investNoiseData1@RT[index.na1][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@RT[allIndex][class1==cl1[2]],na.rm=T),1,2)
+              tcl1 <- ifelse(mean(investNoiseData1@Results$RT[index.na1][class1==cl1[1]],na.rm=T)<mean(investNoiseData1@Results$RT[allIndex][class1==cl1[2]],na.rm=T),1,2)
               indexFilterRatios[!(allIndex)] <-FALSE
               indexFilterRatios[allIndex] <- (class1==cl1[tcl1])
               }
@@ -442,18 +423,19 @@ noiseDatanew <- reactive({
             RT <- as.numeric(input$RT_Filter)
             RI <- as.numeric(input$RI_Filter)
             ####### FILTERING BASED ON fixed RT and RI
-            indexFilterRatios <- c(investNoiseData1@RI<=RI & investNoiseData1@RT<=RT )
+            indexFilterRatios <- c(investNoiseData1@Results$RI<=RI & investNoiseData1@Results$RT<=RT )
             summa <- paste(sum(indexFilterRatios,na.rm=T),' molecules remaining \n after filtering with fixed RT=',RT,'and RI=',RI,'.', sep=" ")
           }
         }
       }
       indexFinal <<- indexFilterRatios & indexFilterMiss & indexFilterFC
       if(current_filter_input==grp[1]){
-        data2 <<- data.frame(RT=signif(investNoiseData1@RT,2),RI=signif(investNoiseData1@RI,2),propMiss=signif(investNoiseData1@propMissing,2),FC=signif(investNoiseData1@foldChange,2),Name=investNoiseData1@name)
+        investNoiseData1@Results[,2:5] <- signif(investNoiseData1@Results[,2:5],2)
+        data2 <<- investNoiseData1@Results
       }else{
-        data2 <<- data.frame(RT=signif(investNoiseData2@RT,2),RI=signif(investNoiseData2@RI,2),propMiss=signif(investNoiseData2@propMissing,2),FC=signif(investNoiseData2@foldChange,2),Name=investNoiseData2@name)
+        investNoiseData2@Results[,2:5] <- signif(investNoiseData2@Results[,2:5],2)
+        data2 <<- investNoiseData2@Results
       }
-    
     if(sum(indexFinal)==0)
       indexFinal <<- rep(T,length(indexFinal))
     }
@@ -463,23 +445,28 @@ noiseDatanew <- reactive({
 
 
 ## Scatterplot of filter ratios colored by fold change values ##
-output$BubbleGvisFC <- renderGvis({
-  df <- noiseDatanew()
-  bubble2 <- NULL
-  if(!is.null(df)){
-    bubble2 <- gvisBubbleChart(df, idvar="Name", xvar="RT", yvar="RI", sizevar="FC",options=list(title='Fold change',hAxis="{title: 'R_T'}",vAxis="{title: 'R_I'}",colorAxis="{colors: ['blue', 'orange']}",bubble="{stroke:'none',opacity:0.4,textStyle:{color: 'none'}}",sizeAxis="{minValue: 0,  maxSize: 5}"))
-  }
-  return(bubble2)
-})
-
-## Scatterplot of filter ratios colored by proportion of missing values ##
-output$BubbleGvisMissProp <- renderGvis({
+output$BubbleGvisFC <- renderPlotly({
   df <- noiseDatanew()
   bubble <- NULL
   if(!is.null(df)){
-    bubble <- gvisBubbleChart(df, idvar="Name", xvar="RT", yvar="RI", sizevar="propMiss",options=list(title='Proportion of missing values', hAxis="{title: 'R_T'}",vAxis="{title: 'R_I'}", colorAxis="{colors: ['green','blue', 'red']}",bubble="{stroke:'none',opacity:0.4,textStyle:{color: 'none'}}",sizeAxis="{minValue: 0,  maxSize: 5}"))
+    df<- new("noise",Results=df)
+    bubble <-  ggplotly(plot(df,colorBy="fc"))
   }
-  return(bubble)
+  bubble
+
+
+})
+
+## Scatterplot of filter ratios colored by proportion of missing values ##
+output$BubbleGvisMissProp <- renderPlotly({
+  df <- noiseDatanew()
+  bubble <- NULL
+  if(!is.null(df)){
+  
+    df<- new("noise",Results=df)
+    bubble <-  ggplotly(plot(df,colorBy="propMissing"))
+    }
+ bubble
 })
 
 ### Model based clustering on filter ratios ##
@@ -499,11 +486,11 @@ output$MCLUST <- renderPlot({
         keep <- rep('yes',length(class1))
         keep[class1==cl[tcl]] <- 'no'
         df$keep <- keep
-        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
+        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+geom_point(size=2)+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
       }else{
         keep <- rep('yes',length(index.na))
         df$keep <- keep
-        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification returned errors.")+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
+        clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification returned errors.")+geom_point(size=2)+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
         
       }
   #  })
@@ -540,7 +527,7 @@ output$RT_Filter <- renderUI({
 output$fc_slider <- renderUI({
   df <- noiseDatanew()
   if(!is.null(df)){
-    fc3 <-df$FC
+    fc3 <-df$foldChange
     if(is.null(f.slider)) {
       #  if(is.null(f.slider) | changeFC){
       ymin.fc <<- min(fc3,na.rm = T)
@@ -898,10 +885,18 @@ output$textAnaModel <- renderText({
       }
     }
 
-
-    if(is.null(rownames(data.lmm)))
-      rownames(data.lmm) <- 1:nrow(data.lmm)
-    
+    if(is.null(rownames(data.lmm))){
+       len <- length(na.omit(unique(group)))
+      if(len>1){
+        rownames(data.lmm) <- paste(rep(1:nr,2),group)
+      }else{
+        rownames(data.lmm) <- paste(1:nrow(data.lmm),group)
+      }
+    }else{
+      rownames(data.lmm) <- paste(rownames(data.lmm),group)
+    }
+      
+    print(rownames(data.lmm))
     time <- TimeData()$data
     if(is.null(time) & isolate(input$RunExample)){
      # Example()
@@ -918,19 +913,20 @@ output$textAnaModel <- renderText({
       s <- apply(data.lmm,1, function(x)spline(t.s,x,n=50)$y)
       t <- seq(min(time,na.rm = T),max(time,na.rm = T),length.out=50)
          tl <- length(t)
-      pred.data <- data.frame(Intensity=as.vector(s),Molecule=rep(rownames(data.lmm),each=tl),Time=rep(t,nrow(data.lmm)),Cluster=header[rep(classification,each=tl)],Group=rep(group,each=tl))
+      pred.data <- data.frame(Intensity=as.vector(s),Molecule=as.character(rep(rownames(data.lmm),each=tl)),Time=rep(t,nrow(data.lmm)),Cluster=header[rep(classification,each=tl)],Group=rep(group,each=tl))
       
     }else{
       t.sl<- length(t.s)
-       pred.data <- data.frame(Intensity=as.vector(unlist(t(data.lmm))),Molecule=rep(rownames(data.lmm),each=t.sl),Time=rep(t.s,nrow(data.lmm)),Cluster=header[rep(classification,each=t.sl)],Group=rep(group,each=t.sl))      
+       pred.data <- data.frame(Intensity=as.vector(unlist(t(data.lmm))),Molecule=as.character(rep(rownames(data.lmm),each=t.sl)),Time=rep(t.s,nrow(data.lmm)),Cluster=header[rep(classification,each=t.sl)],Group=rep(group,each=t.sl))      
       
     }
+    print(head(pred.data))
     if(!input$colorGroup)
       pred.data$Group <- pred.data$Cluster
 
-    p0 <- qplot(x=Time,y=Intensity,group=Molecule,color=Group,geom='line',data=pred.data,facets = ~Cluster) + stat_summary(fun.data = "mean_cl_boot",aes(x=Time,y=Intensity,group=Cluster),size=1.2,data=pred.data, geom="line",color='black')+theme_bw()#+stat_summary(mean_cl_boot, geom="line",stat_summary( group = 1, fun.data = mean_cl_boot, color = "black", alpha = 0.2, size = 1.1))
+    p0 <- qplot(x=Time,y=Intensity,group=Molecule,label=Molecule,color=Group,geom='line',data=pred.data,facets = ~Cluster) + stat_summary(fun.data = "mean_cl_boot",aes(x=Time,y=Intensity,group=Cluster),size=1.2,data=pred.data, geom="line",color='black')+theme_bw()#+stat_summary(mean_cl_boot, geom="line",stat_summary( group = 1, fun.data = mean_cl_boot, color = "black", alpha = 0.2, size = 1.1))
     #scales='free_y',facets = ~Cluster,data=pred.data,)
-    print(p0)
+    ggplotly(p0,tooltip = c('label', "x","y"))
 
   }
   
@@ -992,7 +988,7 @@ output$textAnaModel <- renderText({
     isolate(formulaText())
   })
   
-  output$clusterPlot <- renderPlot({
+  output$clusterPlot <- renderPlotly({
     if (input$submitVisu== 0|(is.null(lmm)& length(time)!=length(unique(time))))
       return()
     isolate(makePlot(input$clusterAlgo,input$cluster_num,input$Radio_Correlation))
