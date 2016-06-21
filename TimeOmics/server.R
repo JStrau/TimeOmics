@@ -15,15 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 
-library(shiny)
-library(cluster)
-library(kohonen)
-library(Rmixmod)
-library(mclust)
-library(ggplot2)
-library(plotly)
-library(lmms)
-
 source('global.R',encoding = 'UTF-8')
 shinyServer(function(input, output,session) {
 options(shiny.maxRequestSize=30*1024^2,encoding="UTF-8") 
@@ -170,7 +161,7 @@ ObsGroupSel <- observe({
     
     if(input$RunExample){
       #Example()
-      print(getwd())
+     # print(getwd())
       ExpData <- ExampleExp
     }
     if(!is.null(ExpData)){
@@ -192,7 +183,7 @@ ObsGroupSel <- observe({
       mes <- data.frame(Expression=as.vector(unlist(ExpData)),Group=as.factor(rep(group,ncol(ExpData))))
       #density plot
       if(input$dens){
-        m <- qplot(Expression, color=Group, data=mes, geom='density', alpha=0.8)+  theme_bw()# +  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank())#+ scale_fill_brewer(palette="Dark2") 
+        m <- qplot(Expression, color=Group, data=mes, geom='density')+geom_density(size=2) + theme_bw()# +  theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank())#+ scale_fill_brewer(palette="Dark2") 
       }else{
         m <- ggplot(mes, aes(x=Expression,color=Group,fill=Group)) 
         m <- m + geom_histogram(alpha=0.8) + theme_bw() #theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) #+ scale_fill_brewer(palette="Dark2") 
@@ -845,7 +836,7 @@ output$textAnaModel <- renderText({
     }
     if(algo=="model"){
       k <- Mclust(data.frame(tmp.data),G= num.cluster)
-      classifi <<- k$partition
+      classifi <<- k$classification
     }
     if(algo=="som"){
       m <- t(matrix(unlist(t(tmp.data)),nrow=ncol(tmp.data)))
@@ -877,26 +868,26 @@ output$textAnaModel <- renderText({
         nr <- nrow(data.lmm@predSpline)
         data.lmm  <- data.lmm@predSpline
         group <- rep(input$GroupsSel,each=nr)
+        if(is.null(rownames(data.lmm))){
+            rownames(data.lmm) <- paste(1:nrow(data.lmm),group)
+          }
+        
       }else{
         nr <- nrow(data.lmm[[1]]@predSpline)
         data.lmm  <- rbind(data.lmm[[1]]@predSpline,data.lmm[[2]]@predSpline)
+        
         group <- rep(input$GroupsSel,each=nr)
-
+        if(is.null(rownames(data.lmm[[1]]@predSpline))){
+          len <- length(na.omit(unique(group)))
+          if(len>1){
+            rownames(data.lmm) <- paste(rep(1:nr,2),group)
+          }else{
+            rownames(data.lmm) <- paste(rep(rownames(data.lmm[[1]]@predSpline),2),group)
+          }
       }
     }
+}
 
-    if(is.null(rownames(data.lmm))){
-       len <- length(na.omit(unique(group)))
-      if(len>1){
-        rownames(data.lmm) <- paste(rep(1:nr,2),group)
-      }else{
-        rownames(data.lmm) <- paste(1:nrow(data.lmm),group)
-      }
-    }else{
-      rownames(data.lmm) <- paste(rownames(data.lmm),group)
-    }
-      
-    print(rownames(data.lmm))
     time <- TimeData()$data
     if(is.null(time) & isolate(input$RunExample)){
      # Example()
@@ -920,10 +911,10 @@ output$textAnaModel <- renderText({
        pred.data <- data.frame(Intensity=as.vector(unlist(t(data.lmm))),Molecule=as.character(rep(rownames(data.lmm),each=t.sl)),Time=rep(t.s,nrow(data.lmm)),Cluster=header[rep(classification,each=t.sl)],Group=rep(group,each=t.sl))      
       
     }
-    print(head(pred.data))
+
     if(!input$colorGroup)
       pred.data$Group <- pred.data$Cluster
-
+ 
     p0 <- qplot(x=Time,y=Intensity,group=Molecule,label=Molecule,color=Group,geom='line',data=pred.data,facets = ~Cluster) + stat_summary(fun.data = "mean_cl_boot",aes(x=Time,y=Intensity,group=Cluster),size=1.2,data=pred.data, geom="line",color='black')+theme_bw()#+stat_summary(mean_cl_boot, geom="line",stat_summary( group = 1, fun.data = mean_cl_boot, color = "black", alpha = 0.2, size = 1.1))
     #scales='free_y',facets = ~Cluster,data=pred.data,)
     ggplotly(p0,tooltip = c('label', "x","y"))

@@ -67,8 +67,9 @@ getPackage <- function(pkg, load = TRUE, silent = FALSE, repos = "http://cran.us
 
 ##CHANGE DE plot if DT package selection="single" is updated
 #d <- c('parallel','nlme','gdata','reshape2','lmeSplines')
-x <- c("shiny", "shinydashboard",'cluster','kohonen','snow','Rmixmod','ggplot2','plotly','DT','mclust','devtools') # etc.
-lapply(c(x), getPackage, silent = TRUE)
+x <- c("shiny", "shinydashboard",'cluster','kohonen','snow','Rmixmod','ggplot2','plotly','DT','mclust','devtools','Hmisc') # etc.
+l <- lapply(c(x), getPackage, silent = TRUE)
+
 
 if(!require(org.Hs.eg.db)){
   source("http://bioconductor.org/biocLite.R")
