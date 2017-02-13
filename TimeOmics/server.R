@@ -151,11 +151,11 @@ ObsGroupSel <- observe({
   ClRangeChanged1 <<-0
   ce <<-NULL
   investNoiseData1 <<- NULL
+  investNoiseData2 <<- NULL
 })
 
 
   output$HistPlot <- renderPlot({
-    
     # generate an rnorm distribution and plot it
     ExpData <- ExpData()$data
     
@@ -476,11 +476,12 @@ output$MCLUST <- renderPlot({
         tcl <- ifelse(mean(df$RT[class1==cl[1]],na.rm=T)<mean(df$RT[class1==cl[2]],na.rm=T),2,1)
         keep <- rep('yes',length(class1))
         keep[class1==cl[tcl]] <- 'no'
-        df$keep <- keep
+        df$keep <- "yes"
+        df[index.na,]$keep <- keep
         clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,xlab="R_T",ylab="R_I",main="Classification using \n model based clustering and two clusters")+geom_point(size=2)+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
       }else{
-        keep <- rep('yes',length(index.na))
-        df$keep <- keep
+      
+        df$keep <- "yes"
         clustplot <- qplot(RT,RI,data=df[index.na,],colour=keep,size=2,xlab="R_T",ylab="R_I",main="Classification returned errors.")+geom_point(size=2)+ theme_bw()#+ theme(axis.line = element_line(colour = "black"), panel.grid.major = element_blank(),panel.grid.minor = element_blank(),panel.border = element_blank(),panel.background = element_blank()) 
         
       }
