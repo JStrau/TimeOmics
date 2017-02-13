@@ -874,15 +874,16 @@ output$textAnaModel <- renderText({
         
       }else{
         nr <- nrow(data.lmm[[1]]@predSpline)
+        rnames <- rownames(data.lmm[[1]]@predSpline)
         data.lmm  <- rbind(data.lmm[[1]]@predSpline,data.lmm[[2]]@predSpline)
         
         group <- rep(input$GroupsSel,each=nr)
-        if(is.null(rownames(data.lmm[[1]]@predSpline))){
+        if(is.null(rnames)){
           len <- length(na.omit(unique(group)))
           if(len>1){
             rownames(data.lmm) <- paste(rep(1:nr,2),group)
           }else{
-            rownames(data.lmm) <- paste(rep(rownames(data.lmm[[1]]@predSpline),2),group)
+            rownames(data.lmm) <- paste(rep(rnames,2),group)
           }
       }
     }
