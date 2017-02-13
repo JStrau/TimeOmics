@@ -42,9 +42,21 @@ Straube J, Gorse A-D, Huang BE and Lê Cao K-A (2015)
 
 A linear mixed model spline framework for analyzing time course `omics' data.
 
+
+### Bug report 13/02/2017
+TimeOmics utelisis R packages plotly and ggplot2. It appears that the latest versions of these two CRAN packages do not work together smoothly. To prevent errors install plotly from github in addition to required package dependencies R packages "miniUI". Further please use the development version of lmms available on bitbucket.
+~~~~
+install.packages('devtools')
+install.packages('miniUI')
+install.packages("htmlwidgets")
+library(devtools)
+install_github("ropensci/plotly")
+install_bitbucket("Jasmin87/lmms")
+~~~~
+
 PLoS ONE 10(8): e0134540. [doi: 10.1371/journal.pone.0134540](http://dx.doi.org/10.1371/journal.pone.0134540)
 
 
 ### Who do I talk to? ###
-The [user guide](https://github.com/JStrau/TimeOmics/tree/master/TimeOmics/www/UserGuide.pdf) and references will hopefully answer most questions about TimeOmics. However, additional questions can be directed to j.straube[at]qfab.org.
+The [user guide](https://github.com/JStrau/TimeOmics/tree/master/TimeOmics/www/UserGuide.pdf) and references will hopefully answer most questions about TimeOmics. However, additional questions can be directed to jasmin.straube[at]qimrberghofer.edu.au.
 We appreciate bug reports in the software or R functions and welcome any suggestions or comments for improvements.
