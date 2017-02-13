@@ -1,6 +1,6 @@
 # TimeOmics in a Nutshell #
 
-TimeOmics is a user-friendly application to filter, visualize and analyse high dimensional time course `omics' data. TimeOmics enables a variety of functions, for molecule expression experiments measured on multiple biological replicates over multiple time points to enable: 
+TimeOmics is a user-friendly application to filter, visualize and analyse high dimensional time course 'omics' data. TimeOmics enables a variety of functions, for molecule expression experiments measured on multiple biological replicates over multiple time points to enable: 
 
 1.  Filtering of not expressed or noisy molecules.
 2.  Modelling of time course expression profiles.
@@ -44,7 +44,7 @@ A linear mixed model spline framework for analyzing time course `omics' data.
 
 
 ### Bug report 13/02/2017
-TimeOmics utelisis R packages plotly and ggplot2. It appears that the latest versions of these two CRAN packages do not work together smoothly. To prevent errors install plotly from github in addition to required package dependencies R packages "miniUI". Further please use the development version of lmms available on bitbucket.
+TimeOmics utelisis R packages plotly and ggplot2. It appears that the latest versions of these two CRAN packages do not work together smoothly. To prevent errors install plotly from github in addition to the required package dependencies "miniUI" and "htmlwidgets". Further please use the development version of lmms available on bitbucket. The code to install the packages is described below:
 ~~~~
 install.packages('devtools')
 install.packages('miniUI')
